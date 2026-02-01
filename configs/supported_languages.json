@@ -1,0 +1,27 @@
+{
+  "description": "Languages supported for transcription and captions",
+  "languages": {
+    "en": {"name": "English", "whisper_code": "en"},
+    "es": {"name": "Spanish", "whisper_code": "es"},
+    "fr": {"name": "French", "whisper_code": "fr"},
+    "de": {"name": "German", "whisper_code": "de"},
+    "it": {"name": "Italian", "whisper_code": "it"},
+    "pt": {"name": "Portuguese", "whisper_code": "pt"},
+    "ru": {"name": "Russian", "whisper_code": "ru"},
+    "ja": {"name": "Japanese", "whisper_code": "ja"},
+    "ko": {"name": "Korean", "whisper_code": "ko"},
+    "zh": {"name": "Chinese", "whisper_code": "zh"},
+    "ar": {"name": "Arabic", "whisper_code": "ar"},
+    "hi": {"name": "Hindi", "whisper_code": "hi"},
+    "nl": {"name": "Dutch", "whisper_code": "nl"},
+    "pl": {"name": "Polish", "whisper_code": "pl"},
+    "tr": {"name": "Turkish", "whisper_code": "tr"},
+    "vi": {"name": "Vietnamese", "whisper_code": "vi"},
+    "th": {"name": "Thai", "whisper_code": "th"},
+    "id": {"name": "Indonesian", "whisper_code": "id"},
+    "uk": {"name": "Ukrainian", "whisper_code": "uk"},
+    "sv": {"name": "Swedish", "whisper_code": "sv"}
+  },
+  "auto_detect": true,
+  "default_language": "auto"
+}

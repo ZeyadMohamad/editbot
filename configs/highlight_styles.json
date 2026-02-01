@@ -1,0 +1,59 @@
+{
+  "description": "Highlight styles for word-by-word caption effects",
+  "styles": {
+    "color_change": {
+      "description": "Change word color when spoken - simple and clean",
+      "type": "color",
+      "ass_implementation": "karaoke_k",
+      "parameters": {
+        "default_color": "white",
+        "highlight_color": "yellow"
+      }
+    },
+    "karaoke_fill": {
+      "description": "Fill word from left to right as spoken - classic karaoke effect",
+      "type": "karaoke",
+      "ass_implementation": "karaoke_kf",
+      "parameters": {
+        "fill_color": "yellow"
+      }
+    },
+    "scale_pop": {
+      "description": "Scale up active word then back down - attention grabbing",
+      "type": "transform",
+      "ass_implementation": "transform_scale",
+      "parameters": {
+        "scale_factor": 1.2,
+        "duration_ms": 100
+      }
+    },
+    "glow": {
+      "description": "Add glow/blur effect to active word",
+      "type": "effect",
+      "ass_implementation": "blur_glow",
+      "parameters": {
+        "blur_strength": 2,
+        "glow_color": "yellow"
+      }
+    },
+    "bounce": {
+      "description": "Bounce animation on active word",
+      "type": "transform",
+      "ass_implementation": "transform_move",
+      "parameters": {
+        "bounce_height": 10,
+        "duration_ms": 150
+      }
+    },
+    "underline_sweep": {
+      "description": "Underline sweeps under the word as spoken",
+      "type": "drawing",
+      "ass_implementation": "drawing_line",
+      "parameters": {
+        "line_color": "yellow",
+        "line_thickness": 3
+      }
+    }
+  },
+  "default_style": "color_change"
+}

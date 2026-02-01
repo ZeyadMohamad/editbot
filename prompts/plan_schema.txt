@@ -1,0 +1,139 @@
+## PLAN JSON SCHEMA
+
+The LLM must output plans conforming to this structure:
+
+### Top-Level Response
+```json
+{
+  "success": boolean,          // Whether plan was created successfully
+  "plan": Plan | null,         // Execution plan (null if success=false)
+  "missing_inputs": string[],  // Required inputs not provided
+  "validation_errors": string[], // Config validation failures
+  "message": string            // Human-readable status message
+}
+```
+
+### Plan Object
+```json
+{
+  "plan_id": string,           // Unique identifier (e.g., "plan_20240128_001")
+  "intent": string,            // Summary of what user wants
+  "jobs": Job[],               // Ordered list of jobs
+  "estimated_duration": number // Optional: estimated seconds
+}
+```
+
+### Job Object
+```json
+{
+  "job_id": string,            // Unique within plan (e.g., "job_1")
+  "job_type": string,          // Tool name from registry
+  "inputs": {                  // Tool-specific inputs
+    "param_name": value
+  },
+  "outputs": {                 // Expected output artifacts
+    "artifact_name": "path_or_placeholder"
+  },
+  "depends_on": string[]       // Job IDs this depends on
+}
+```
+
+### Valid job_type Values
+- extract_audio
+- get_video_info
+- transcribe
+- align_words
+- generate_captions
+- render_subtitles
+
+### Input/Output Placeholders
+Use these placeholders for dynamic paths:
+- {input_video}: User's input video path
+- {workspace}: Job workspace directory
+- {job_id}: Current job's ID
+- {output_dir}: Final output directory
+
+### Example Complete Plan
+```json
+{
+  "success": true,
+  "plan": {
+    "plan_id": "plan_caption_001",
+    "intent": "Add word-highlighted captions to video",
+    "jobs": [
+      {
+        "job_id": "job_1",
+        "job_type": "extract_audio",
+        "inputs": {
+          "video_path": "{input_video}",
+          "output_path": "{workspace}/audio.wav",
+          "sample_rate": 16000
+        },
+        "outputs": {
+          "audio_file": "{workspace}/audio.wav"
+        },
+        "depends_on": []
+      },
+      {
+        "job_id": "job_2",
+        "job_type": "transcribe",
+        "inputs": {
+          "audio_path": "{workspace}/audio.wav",
+          "language": "auto"
+        },
+        "outputs": {
+          "transcript": "{workspace}/transcript.json"
+        },
+        "depends_on": ["job_1"]
+      },
+      {
+        "job_id": "job_3",
+        "job_type": "align_words",
+        "inputs": {
+          "transcription_result": "{job_2.outputs.transcript}"
+        },
+        "outputs": {
+          "words": "{workspace}/words.json"
+        },
+        "depends_on": ["job_2"]
+      },
+      {
+        "job_id": "job_4",
+        "job_type": "generate_captions",
+        "inputs": {
+          "words": "{job_3.outputs.words}",
+          "output_path": "{workspace}/captions.ass",
+          "style": {
+            "font": "Montserrat ExtraBold",
+            "font_size": 48,
+            "primary_color": "FFFFFF",
+            "highlight_color": "00FFFF",
+            "highlight_type": "color_change",
+            "position": "bottom_center"
+          }
+        },
+        "outputs": {
+          "ass_file": "{workspace}/captions.ass"
+        },
+        "depends_on": ["job_3"]
+      },
+      {
+        "job_id": "job_5",
+        "job_type": "render_subtitles",
+        "inputs": {
+          "video_path": "{input_video}",
+          "subtitle_path": "{workspace}/captions.ass",
+          "output_path": "{output_dir}/output.mp4"
+        },
+        "outputs": {
+          "video_file": "{output_dir}/output.mp4"
+        },
+        "depends_on": ["job_4"]
+      }
+    ]
+  },
+  "missing_inputs": [],
+  "validation_errors": [],
+  "message": "Plan created successfully with 5 jobs"
+}
+```

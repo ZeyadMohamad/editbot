@@ -1,0 +1,15 @@
+{
+  "name": "TikTok Bold",
+  "description": "Bold, attention-grabbing captions popular on TikTok",
+  "font": "Montserrat ExtraBold",
+  "font_size": 64,
+  "primary_color": "FFFFFF",
+  "highlight_color": "00FFFF",
+  "outline_color": "000000",
+  "outline_width": 4,
+  "position": "bottom",
+  "highlight_type": "color_change",
+  "bold": true,
+  "italic": false,
+  "shadow": 3
+}

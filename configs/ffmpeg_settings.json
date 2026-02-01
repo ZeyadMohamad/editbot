@@ -1,0 +1,35 @@
+{
+  "description": "FFmpeg encoding and processing settings",
+  "audio_extraction": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "format": "wav",
+    "codec": "pcm_s16le"
+  },
+  "video_encoding": {
+    "codecs": {
+      "h264": {
+        "name": "libx264",
+        "description": "H.264/AVC - widely compatible",
+        "presets": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"],
+        "default_preset": "medium",
+        "crf_range": [0, 51],
+        "default_crf": 23
+      },
+      "h265": {
+        "name": "libx265",
+        "description": "H.265/HEVC - better compression",
+        "presets": ["ultrafast", "superfast", "veryfast", "faster", "fast", "medium", "slow", "slower", "veryslow"],
+        "default_preset": "medium",
+        "crf_range": [0, 51],
+        "default_crf": 28
+      }
+    },
+    "default_codec": "h264"
+  },
+  "subtitle_rendering": {
+    "filter": "ass",
+    "font_provider": "fontconfig"
+  },
+  "default_output_format": "mp4"
+}

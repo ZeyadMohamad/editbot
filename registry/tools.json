@@ -1,0 +1,131 @@
+{
+  "description": "Registry of all available tools in the system. Add new tools here when created.",
+  "version": "1.0.0",
+  "tools": {
+    "extract_audio": {
+      "name": "Extract Audio",
+      "description": "Extract audio track from video file for processing",
+      "module": "tools.ffmpeg_tool",
+      "class": "FFmpegTool",
+      "method": "extract_audio",
+      "category": "audio",
+      "inputs": {
+        "video_path": {"type": "file", "required": true, "description": "Path to input video"},
+        "output_path": {"type": "file", "required": true, "description": "Path for output audio"},
+        "sample_rate": {"type": "int", "required": false, "default": 16000},
+        "audio_format": {"type": "string", "required": false, "default": "wav"}
+      },
+      "outputs": {
+        "audio_file": {"type": "file", "description": "Extracted audio file"}
+      },
+      "depends_on": [],
+      "config_files": ["ffmpeg_settings.json", "supported_formats.json"]
+    },
+    "get_video_info": {
+      "name": "Get Video Info",
+      "description": "Get video metadata like duration, resolution, fps",
+      "module": "tools.ffmpeg_tool",
+      "class": "FFmpegTool",
+      "method": "get_video_info",
+      "category": "utility",
+      "inputs": {
+        "video_path": {"type": "file", "required": true, "description": "Path to video file"}
+      },
+      "outputs": {
+        "duration": {"type": "float", "description": "Video duration in seconds"},
+        "width": {"type": "int", "description": "Video width"},
+        "height": {"type": "int", "description": "Video height"},
+        "fps": {"type": "float", "description": "Frames per second"}
+      },
+      "depends_on": [],
+      "config_files": ["supported_formats.json"]
+    },
+    "transcribe": {
+      "name": "Transcribe Audio",
+      "description": "Transcribe audio to text with timestamps using Whisper",
+      "module": "tools.whisperx_tool",
+      "class": "WhisperXTool",
+      "method": "transcribe",
+      "category": "transcription",
+      "inputs": {
+        "audio_path": {"type": "file", "required": true, "description": "Path to audio file"},
+        "language": {"type": "string", "required": false, "default": "auto", "description": "Language code or 'auto'"}
+      },
+      "outputs": {
+        "text": {"type": "string", "description": "Full transcribed text"},
+        "language": {"type": "string", "description": "Detected language"},
+        "segments": {"type": "array", "description": "Transcript segments with timestamps"}
+      },
+      "depends_on": ["extract_audio"],
+      "config_files": ["supported_languages.json"]
+    },
+    "align_words": {
+      "name": "Align Words",
+      "description": "Get word-level timestamps from transcription",
+      "module": "tools.whisperx_tool",
+      "class": "WhisperXTool",
+      "method": "align_words",
+      "category": "transcription",
+      "inputs": {
+        "transcription_result": {"type": "object", "required": true, "description": "Result from transcribe tool"}
+      },
+      "outputs": {
+        "words": {"type": "array", "description": "Words with start/end timestamps"}
+      },
+      "depends_on": ["transcribe"],
+      "config_files": []
+    },
+    "generate_captions": {
+      "name": "Generate Captions",
+      "description": "Generate ASS subtitle file with styled captions",
+      "module": "tools.captions_tool",
+      "class": "CaptionsTool",
+      "method": "generate_ass_file",
+      "category": "captions",
+      "inputs": {
+        "words": {"type": "array", "required": true, "description": "Words with timestamps"},
+        "output_path": {"type": "file", "required": true, "description": "Output ASS file path"},
+        "style": {"type": "object", "required": false, "description": "Caption style configuration"}
+      },
+      "outputs": {
+        "ass_file": {"type": "file", "description": "Generated ASS subtitle file"}
+      },
+      "depends_on": ["align_words"],
+      "config_files": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json"]
+    },
+    "render_subtitles": {
+      "name": "Render Subtitles",
+      "description": "Burn subtitles onto video",
+      "module": "tools.ffmpeg_tool",
+      "class": "FFmpegTool",
+      "method": "render_subtitles",
+      "category": "video",
+      "inputs": {
+        "video_path": {"type": "file", "required": true, "description": "Input video path"},
+        "subtitle_path": {"type": "file", "required": true, "description": "ASS subtitle file path"},
+        "output_path": {"type": "file", "required": true, "description": "Output video path"},
+        "codec": {"type": "string", "required": false, "default": "libx264"},
+        "preset": {"type": "string", "required": false, "default": "medium"},
+        "crf": {"type": "int", "required": false, "default": 23}
+      },
+      "outputs": {
+        "video_file": {"type": "file", "description": "Video with burned-in subtitles"}
+      },
+      "depends_on": ["generate_captions"],
+      "config_files": ["ffmpeg_settings.json", "supported_formats.json"]
+    }
+  },
+  "categories": {
+    "audio": "Audio processing tools",
+    "video": "Video processing tools",
+    "transcription": "Speech-to-text tools",
+    "captions": "Subtitle and caption tools",
+    "utility": "Utility and helper tools"
+  },
+  "pipelines": {
+    "caption_pipeline": {
+      "description": "Full pipeline for adding captions to video",
+      "steps": ["extract_audio", "transcribe", "align_words", "generate_captions", "render_subtitles"]
+    }
+  }
+}

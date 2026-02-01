@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+.env/
+env/
+ENV/
+*.egg-info/
+dist/
+build/
+
+# Workspace and outputs
+.models/
+models/
+.pip_cache/
+workspace/
+output/
+*.mp4
+*.avi
+*.mov
+*.wav
+*.mp3
+*.ass
+*.srt
+
+# Logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporary
+temp/
+tmp/
+cache/
+
+# Models (if cached locally)
+models/
+*.pt
+*.pth

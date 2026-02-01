@@ -1,0 +1,54 @@
+{
+  "description": "Caption and text positioning options",
+  "positions": {
+    "bottom_left": {
+      "alignment": 1,
+      "description": "Bottom left corner"
+    },
+    "bottom_center": {
+      "alignment": 2,
+      "description": "Bottom center - most common for captions"
+    },
+    "bottom_right": {
+      "alignment": 3,
+      "description": "Bottom right corner"
+    },
+    "middle_left": {
+      "alignment": 4,
+      "description": "Middle left"
+    },
+    "middle_center": {
+      "alignment": 5,
+      "description": "Center of screen"
+    },
+    "middle_right": {
+      "alignment": 6,
+      "description": "Middle right"
+    },
+    "top_left": {
+      "alignment": 7,
+      "description": "Top left corner"
+    },
+    "top_center": {
+      "alignment": 8,
+      "description": "Top center"
+    },
+    "top_right": {
+      "alignment": 9,
+      "description": "Top right corner"
+    }
+  },
+  "aliases": {
+    "bottom": "bottom_center",
+    "top": "top_center",
+    "center": "middle_center",
+    "middle": "middle_center",
+    "left": "middle_left",
+    "right": "middle_right"
+  },
+  "margins": {
+    "default_horizontal": 30,
+    "default_vertical": 50
+  },
+  "default_position": "bottom_center"
+}

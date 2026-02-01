@@ -1,0 +1,114 @@
+{
+  "available_fonts": [
+    "Arial",
+    "Arial Bold",
+    "Calibri",
+    "Calibri Bold",
+    "Comic Sans MS",
+    "Comic Sans MS Bold",
+    "Courier New",
+    "Georgia",
+    "Impact",
+    "Montserrat",
+    "Montserrat Bold",
+    "Montserrat ExtraBold",
+    "Open Sans",
+    "Open Sans Bold",
+    "Roboto",
+    "Roboto Bold",
+    "Times New Roman",
+    "Trebuchet MS",
+    "Verdana"
+  ],
+  "text_styles": {
+    "bold": {
+      "description": "Bold text weight",
+      "ass_tag": "\\b1"
+    },
+    "italic": {
+      "description": "Italic text",
+      "ass_tag": "\\i1"
+    },
+    "underline": {
+      "description": "Underlined text",
+      "ass_tag": "\\u1"
+    },
+    "shadow": {
+      "description": "Text shadow",
+      "ass_tag": "\\shad"
+    },
+    "outline": {
+      "description": "Text outline/border",
+      "ass_tag": "\\bord"
+    }
+  },
+  "highlight_styles": {
+    "color_change": {
+      "description": "Change word color when spoken",
+      "default_color": "FFFFFF",
+      "highlight_color": "00FFFF"
+    },
+    "karaoke_fill": {
+      "description": "Fill word from left to right as spoken",
+      "type": "karaoke"
+    },
+    "background_box": {
+      "description": "Add background box behind active word",
+      "type": "box"
+    },
+    "scale_pop": {
+      "description": "Scale up active word",
+      "type": "transform"
+    },
+    "glow": {
+      "description": "Add glow effect to active word",
+      "type": "glow"
+    }
+  },
+  "colors": {
+    "white": "FFFFFF",
+    "black": "000000",
+    "red": "0000FF",
+    "green": "00FF00",
+    "blue": "FF0000",
+    "yellow": "00FFFF",
+    "cyan": "FFFF00",
+    "magenta": "FF00FF",
+    "orange": "0080FF",
+    "purple": "FF0080",
+    "pink": "FF80FF",
+    "lime": "00FF80"
+  },
+  "positions": {
+    "bottom": 10,
+    "middle": 5,
+    "top": 2
+  },
+  "font_sizes": {
+    "small": 32,
+    "medium": 48,
+    "large": 64,
+    "extra_large": 80
+  },
+  "supported_languages": [
+    "en",
+    "es",
+    "fr",
+    "de",
+    "it",
+    "pt",
+    "ru",
+    "ja",
+    "ko",
+    "zh",
+    "ar",
+    "hi"
+  ],
+  "ffmpeg_settings": {
+    "audio_sample_rate": 16000,
+    "audio_format": "wav",
+    "video_codec": "libx264",
+    "video_preset": "medium",
+    "crf": 23
+  }
+}

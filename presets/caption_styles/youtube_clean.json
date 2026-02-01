@@ -1,0 +1,15 @@
+{
+  "name": "YouTube Clean",
+  "description": "Clean, professional captions for YouTube videos",
+  "font": "Arial Bold",
+  "font_size": 48,
+  "primary_color": "FFFFFF",
+  "highlight_color": "FFD700",
+  "outline_color": "000000",
+  "outline_width": 2,
+  "position": "bottom",
+  "highlight_type": "karaoke_fill",
+  "bold": true,
+  "italic": false,
+  "shadow": 1
+}

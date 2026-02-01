@@ -1,0 +1,22 @@
+{
+  "description": "Supported input/output formats and extensions",
+  "video_extensions": {
+    "input": [".mp4", ".mkv", ".avi", ".mov", ".wmv", ".flv", ".webm", ".m4v", ".mpeg", ".mpg", ".3gp", ".ts", ".mts"],
+    "output": [".mp4", ".mkv", ".avi", ".mov", ".webm"]
+  },
+  "audio_extensions": {
+    "input": [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"],
+    "output": [".mp3", ".wav", ".aac", ".flac"]
+  },
+  "subtitle_extensions": {
+    "input": [".srt", ".ass", ".ssa", ".vtt", ".sub"],
+    "output": [".srt", ".ass", ".vtt"]
+  },
+  "image_extensions": {
+    "input": [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp", ".tiff"],
+    "output": [".jpg", ".png", ".webp"]
+  },
+  "default_video_output": ".mp4",
+  "default_audio_output": ".wav",
+  "default_subtitle_output": ".ass"
+}

@@ -1,0 +1,24 @@
+# Core dependencies
+pydantic==2.5.0
+python-dotenv==1.0.0
+
+# LLM integration
+ollama==0.1.6
+
+# Video/Audio processing
+ffmpeg-python==0.2.0
+
+# Whisper for transcription
+openai-whisper
+faster-whisper
+
+# WhisperX for word-level alignment
+git+https://github.com/m-bain/whisperx.git
+
+# Audio processing dependencies for WhisperX
+torch>=2.2.0
+torchaudio>=2.2.0
+
+# Additional utilities
+colorama==0.4.6
+tqdm==4.66.1

@@ -1,0 +1,54 @@
+## CAPTION PIPELINE INSTRUCTIONS
+
+When user requests captions, subtitles, or transcription overlay:
+
+### REQUIRED STEPS (in order)
+1. **extract_audio** - Extract audio track from video
+2. **transcribe** - Convert speech to text with timestamps
+3. **align_words** - Get precise word-level timing
+4. **generate_captions** - Create styled ASS subtitle file
+5. **render_subtitles** - Burn subtitles onto video
+
+### STYLE PARAMETERS TO EXTRACT FROM PROMPT
+Look for these in the user's request:
+- **Font**: Font family name (e.g., "Montserrat", "Arial Bold")
+- **Size**: tiny/small/medium/large/extra_large/huge OR pixel value
+- **Primary Color**: Text color when not highlighted
+- **Highlight Color**: Text color when word is being spoken
+- **Highlight Style**: color_change/karaoke_fill/scale_pop/glow/bounce
+- **Position**: bottom/top/middle/center + left/right
+- **Outline**: Width and color of text border
+- **Shadow**: Shadow depth
+
+### DEFAULT VALUES (when not specified)
+- Font: Montserrat ExtraBold
+- Size: medium (48px)
+- Primary Color: white
+- Highlight Color: yellow
+- Highlight Style: color_change
+- Position: bottom_center
+- Outline: 3px black
+- Shadow: 2
+
+### STYLE EXTRACTION EXAMPLES
+
+User: "Add yellow captions with TikTok style"
+Extract:
+- highlight_color: yellow
+- Use tiktok_bold preset (if available)
+
+User: "Transcribe with Arial font, large size, karaoke fill effect"
+Extract:
+- font: Arial Bold
+- size: large
+- highlight_style: karaoke_fill
+
+User: "Add subtitles at the top in red"
+Extract:
+- position: top_center
+- primary_color: red
+
+### LANGUAGE HANDLING
+- If user specifies language, use it
+- Otherwise, set language to "auto" for auto-detection
+- Whisper handles multilingual content automatically

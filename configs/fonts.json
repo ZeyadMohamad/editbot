@@ -1,0 +1,66 @@
+{
+  "description": "Available fonts for captions and text overlays",
+  "fonts": [
+    {
+      "name": "Arial",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Calibri",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Comic Sans MS",
+      "variants": ["Regular", "Bold"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Courier New",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Regular"
+    },
+    {
+      "name": "Georgia",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Impact",
+      "variants": ["Regular"],
+      "default_variant": "Regular"
+    },
+    {
+      "name": "Montserrat",
+      "variants": ["Regular", "Bold", "ExtraBold", "Black"],
+      "default_variant": "ExtraBold"
+    },
+    {
+      "name": "Open Sans",
+      "variants": ["Regular", "Bold", "SemiBold", "ExtraBold"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Roboto",
+      "variants": ["Regular", "Bold", "Black", "Medium"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Times New Roman",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Trebuchet MS",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    },
+    {
+      "name": "Verdana",
+      "variants": ["Regular", "Bold", "Italic", "Bold Italic"],
+      "default_variant": "Bold"
+    }
+  ],
+  "default_font": "Montserrat ExtraBold"
+}

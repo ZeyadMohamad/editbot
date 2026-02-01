@@ -1,0 +1,46 @@
+{
+  "description": "Text styling options for captions",
+  "styles": {
+    "bold": {
+      "description": "Bold text weight",
+      "ass_tag": "\\b1",
+      "ass_off": "\\b0"
+    },
+    "italic": {
+      "description": "Italic text",
+      "ass_tag": "\\i1",
+      "ass_off": "\\i0"
+    },
+    "underline": {
+      "description": "Underlined text",
+      "ass_tag": "\\u1",
+      "ass_off": "\\u0"
+    },
+    "strikeout": {
+      "description": "Strikethrough text",
+      "ass_tag": "\\s1",
+      "ass_off": "\\s0"
+    }
+  },
+  "outline": {
+    "description": "Text outline/border settings",
+    "ass_tag": "\\bord",
+    "default_width": 3,
+    "range": [0, 10]
+  },
+  "shadow": {
+    "description": "Text shadow settings",
+    "ass_tag": "\\shad",
+    "default_depth": 2,
+    "range": [0, 10]
+  },
+  "font_sizes": {
+    "tiny": 24,
+    "small": 32,
+    "medium": 48,
+    "large": 64,
+    "extra_large": 80,
+    "huge": 96
+  },
+  "default_size": "medium"
+}
