@@ -156,6 +156,8 @@ class WhisperXTool(BaseTool):
         try:
             # Transcribe using faster-whisper
             # word_timestamps=True gives word-level timing
+            with open("prompts/whisper_initial_prompt.txt", "r", encoding="utf-8") as f:
+                initial_prompt = f.read().strip()
             segments, info = self.model.transcribe(
                 audio_path,
                 language=language,
@@ -167,6 +169,7 @@ class WhisperXTool(BaseTool):
                 vad_parameters=dict(
                     min_silence_duration_ms=500,  # Minimum silence to split
                 ),
+                initial_prompt = initial_prompt
             )
             
             # Convert generator to list and extract data

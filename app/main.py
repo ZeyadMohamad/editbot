@@ -254,7 +254,7 @@ def run_caption_pipeline(
     
     ffmpeg = FFmpegTool()
     # Use int8_float16 quantization for medium model - fits well in 4GB VRAM on GPU
-    whisper_tool = WhisperXTool(model_size="medium", device="cuda", compute_type="int8_float16")
+    whisper_tool = WhisperXTool(model_size="large-v3", device="cuda", compute_type="int8_float16")
     captions = CaptionsTool()
     
     config_loader = ConfigLoader()
