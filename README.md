@@ -7,6 +7,7 @@
 - 🎤 **Automatic Transcription** - Speech-to-text using Whisper (supports 20+ languages)
 - 📝 **Word-Level Captions** - Each word highlighted as it's spoken (karaoke style)
 - 🎨 **Customizable Styles** - Fonts, colors, positions, highlight effects
+- ✂️ **Silence Cutter** - Remove dead air and filler words (Arabic/English/code-switched)
 - 🤖 **AI-Powered** - Uses local Llama 3 via Ollama for understanding prompts
 - 🔧 **Extensible** - Easy to add new tools and features
 
@@ -67,6 +68,9 @@ python -m app.main -v video.mp4 -p "Add white text with red highlight, font size
 
 # With output directory
 python -m app.main -v video.mp4 -p "Add karaoke style captions" -o ./output
+
+# Remove silence + filler words, then caption
+python -m app.main -v video.mp4 -p "Remove silence and filler words, then add captions"
 ```
 
 ---
@@ -103,7 +107,8 @@ editbot/
 │   ├── positions.json     # Screen positions
 │   ├── ffmpeg_settings.json   # Encoding settings
 │   ├── supported_formats.json # File format support
-│   └── supported_languages.json # Transcription languages
+│   ├── supported_languages.json # Transcription languages
+│   └── silence_cutter.json # Silence cut defaults & filler words
 │
 ├── registry/              # Tool & config registry
 │   ├── tools.json         # Tool definitions
@@ -150,6 +155,7 @@ editbot/
 | `tools/ffmpeg_tool.py` | Video/audio operations: extract audio, get video info, render subtitles |
 | `tools/whisperx_tool.py` | Speech transcription using Whisper with word-level timestamps |
 | `tools/captions_tool.py` | Generates ASS subtitle files with karaoke-style word highlighting |
+| `tools/silence_cutter_tool.py` | Detects silence and filler words, outputs cut list and trimmed media |
 
 ### Configuration Files
 
@@ -163,6 +169,7 @@ editbot/
 | `configs/ffmpeg_settings.json` | Video encoding presets and codec settings |
 | `configs/supported_formats.json` | Supported video/audio/subtitle file extensions |
 | `configs/supported_languages.json` | Languages supported by Whisper transcription |
+| `configs/silence_cutter.json` | Defaults and filler word lists for silence cutting |
 
 ### Registry Files
 

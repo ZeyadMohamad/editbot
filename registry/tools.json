@@ -113,6 +113,36 @@
       },
       "depends_on": ["generate_captions"],
       "config_files": ["ffmpeg_settings.json", "supported_formats.json"]
+    },
+    "silence_cutter": {
+      "name": "Silence Cutter",
+      "description": "Detect silence and filler words, produce cut list and optionally trimmed media",
+      "module": "tools.silence_cutter_tool",
+      "class": "SilenceCutterTool",
+      "method": "cut_silence",
+      "category": "audio",
+      "inputs": {
+        "audio_path": {"type": "file", "required": true, "description": "Path to extracted WAV audio"},
+        "video_path": {"type": "file", "required": false, "description": "Optional input video path"},
+        "output_path": {"type": "file", "required": false, "description": "Output trimmed video path"},
+        "output_audio_path": {"type": "file", "required": false, "description": "Output trimmed audio path"},
+        "threshold_db": {"type": "float", "required": false, "default": -35.0},
+        "min_silence_duration": {"type": "float", "required": false, "default": 0.3},
+        "padding": {"type": "float", "required": false, "default": 0.05},
+        "chunk_ms": {"type": "int", "required": false, "default": 30},
+        "filler_detection": {"type": "bool", "required": false, "default": true},
+        "filler_model_size": {"type": "string", "required": false, "default": "small"},
+        "filler_language": {"type": "string", "required": false, "default": "auto"},
+        "filler_confidence": {"type": "float", "required": false, "default": 0.5},
+        "filler_aggressive": {"type": "bool", "required": false, "default": false}
+      },
+      "outputs": {
+        "cut_list_path": {"type": "file", "description": "JSON cut list"},
+        "output_video_path": {"type": "file", "description": "Trimmed video"},
+        "output_audio_path": {"type": "file", "description": "Trimmed audio"}
+      },
+      "depends_on": ["extract_audio"],
+      "config_files": ["silence_cutter.json", "supported_formats.json", "supported_languages.json"]
     }
   },
   "categories": {
@@ -126,6 +156,10 @@
     "caption_pipeline": {
       "description": "Full pipeline for adding captions to video",
       "steps": ["extract_audio", "transcribe", "align_words", "generate_captions", "render_subtitles"]
+    },
+    "silence_cut_pipeline": {
+      "description": "Remove silence and filler words from a video",
+      "steps": ["extract_audio", "silence_cutter"]
     }
   }
 }

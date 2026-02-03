@@ -13,6 +13,8 @@ class JobType(str, Enum):
     ALIGN_WORDS = "align_words"
     GENERATE_CAPTIONS = "generate_captions"
     RENDER_VIDEO = "render_video"
+    RENDER_SUBTITLES = "render_subtitles"
+    SILENCE_CUTTER = "silence_cutter"
 
 
 class CaptionStyle(BaseModel):

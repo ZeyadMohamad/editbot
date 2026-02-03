@@ -59,7 +59,7 @@ def test_configs():
         from core.config_loader import ConfigLoader
         loader = ConfigLoader()
         
-        configs_to_test = ["fonts", "colors", "highlight_styles", "positions", "supported_formats"]
+        configs_to_test = ["fonts", "colors", "highlight_styles", "positions", "supported_formats", "silence_cutter"]
         
         for config_name in configs_to_test:
             config = loader.get_config(config_name)
@@ -192,6 +192,14 @@ def test_tools():
         print(f"  {Fore.GREEN}✓{Style.RESET_ALL} CaptionsTool initialized")
     except Exception as e:
         print(f"  {Fore.RED}✗{Style.RESET_ALL} CaptionsTool: {e}")
+        return False
+    
+    try:
+        from tools.silence_cutter_tool import SilenceCutterTool
+        silence = SilenceCutterTool()
+        print(f"  {Fore.GREEN}✓{Style.RESET_ALL} SilenceCutterTool initialized")
+    except Exception as e:
+        print(f"  {Fore.RED}✗{Style.RESET_ALL} SilenceCutterTool: {e}")
         return False
     
     return True

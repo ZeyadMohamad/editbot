@@ -33,13 +33,18 @@
     "supported_languages.json": {
       "keywords": ["language", "english", "spanish", "french", "german", "italian", "portuguese", "russian", "japanese", "korean", "chinese", "arabic", "hindi", "dutch", "polish", "turkish", "transcribe language", "detect language"],
       "intents": ["set_language", "detect_language", "transcribe_language"]
+    },
+    "silence_cutter.json": {
+      "keywords": ["silence", "silent", "pause", "pauses", "dead air", "remove silence", "cut silence", "trim silence", "remove pauses", "cut pauses", "filler", "filler words", "um", "uh", "you know", "يعني", "اممم", "ممم", "صمت", "سكتات", "فواصل", "ازالة الصمت", "إزالة الصمت"],
+      "intents": ["remove_silence", "cut_silence", "remove_fillers"]
     }
   },
   "intent_to_configs": {
     "add_captions": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json", "supported_languages.json"],
     "transcribe": ["supported_languages.json"],
     "export_video": ["ffmpeg_settings.json", "supported_formats.json"],
-    "style_captions": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json"]
+    "style_captions": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json"],
+    "remove_silence": ["silence_cutter.json", "supported_formats.json", "supported_languages.json"]
   },
   "default_configs": ["supported_formats.json"],
   "always_load": []

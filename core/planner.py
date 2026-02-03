@@ -147,6 +147,16 @@ class Planner:
             elif config_name == "supported_formats":
                 video_exts = config_data.get("video_extensions", {}).get("input", [])
                 parts.append(f"Supported Video Formats: {', '.join(video_exts)}")
+            
+            elif config_name == "silence_cutter":
+                defaults = config_data.get("defaults", {})
+                threshold = defaults.get("threshold_db", -35)
+                min_silence = defaults.get("min_silence_duration", 0.3)
+                padding = defaults.get("padding", 0.05)
+                filler = defaults.get("filler_detection", True)
+                parts.append(
+                    f"Silence Cutter: threshold {threshold} dB, min silence {min_silence}s, padding {padding}s, filler_detection {filler}"
+                )
         
         return "\n".join(parts) if parts else "No specific configuration loaded."
     
@@ -158,6 +168,10 @@ class Planner:
         # Check for caption-related keywords
         if any(kw in prompt_lower for kw in ["caption", "subtitle", "transcribe", "text"]):
             instructions.append(self.prompt_loader.load("caption_instructions"))
+        
+        # Check for silence/filler removal keywords
+        if any(kw in prompt_lower for kw in ["silence", "pause", "dead air", "filler", "um", "uh", "you know", "يعني", "اممم", "ممم", "صمت", "سكتات", "ازالة", "إزالة"]):
+            instructions.append(self.prompt_loader.load("silence_cutter_instructions"))
         
         # Add plan schema reference
         instructions.append(self.prompt_loader.load("plan_schema"))

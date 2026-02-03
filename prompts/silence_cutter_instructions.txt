@@ -1,0 +1,26 @@
+## SILENCE CUTTER INSTRUCTIONS
+
+When the user asks to remove silence, pauses, dead air, or filler words:
+
+### REQUIRED STEPS (basic)
+1. **extract_audio** - Extract audio track from video
+2. **silence_cutter** - Detect silence and filler words, output cut list and trimmed media
+
+### WHEN COMBINED WITH CAPTIONS
+If captions are also requested:
+1. Run **silence_cutter** first
+2. Use **output_video_path** (trimmed video) for later steps
+3. Use **output_audio_path** (trimmed audio) for transcription
+
+### KEY PARAMETERS
+- **threshold_db**: dBFS threshold for silence (default from config)
+- **min_silence_duration**: seconds of silence required to cut (e.g., 0.3s)
+- **padding**: seconds to keep around speech to avoid clipping
+- **filler_detection**: true/false
+- **filler_model_size**: small/base for lightweight local detection
+- **filler_language**: auto (supports Arabic, English, and mixed Arabic-English)
+
+### OUTPUTS
+- **cut_list_path**: JSON list of cut/keep segments
+- **output_video_path**: trimmed video (when provided)
+- **output_audio_path**: trimmed audio (when provided)

@@ -12,6 +12,7 @@ from tools.base_tool import BaseTool, ToolResult, ToolRegistry, register_tool
 from tools.ffmpeg_tool import FFmpegTool
 from tools.whisperx_tool import WhisperXTool
 from tools.captions_tool import CaptionsTool
+from tools.silence_cutter_tool import SilenceCutterTool
 
 # Export for easy access
 __all__ = [
@@ -22,6 +23,7 @@ __all__ = [
     "FFmpegTool",
     "WhisperXTool",
     "CaptionsTool",
+    "SilenceCutterTool",
 ]
 
 

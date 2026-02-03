@@ -78,6 +78,7 @@ Prompt keywords:
   Colors:     red, yellow, cyan, green, blue, orange, purple, pink
   Font size:  "font 32", "size 48", "large", "small"
   Style:      bold, italic, karaoke, glow, pop
+  Silence:    remove silence, cut pauses, remove filler words
   
 Output:
   All files are saved to: editbot/workspace/

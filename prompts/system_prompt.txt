@@ -60,3 +60,8 @@ For "Add captions to my video":
 3. align_words: transcript → word_timestamps
 4. generate_captions: word_timestamps → captions.ass
 5. render_subtitles: video + captions.ass → output.mp4
+
+## EXAMPLE PLAN STRUCTURE FOR SILENCE CUTTING
+For "Remove silences and filler words":
+1. extract_audio: video → audio.wav
+2. silence_cutter: audio.wav (+ video) → trimmed_video.mp4 + cut_list.json

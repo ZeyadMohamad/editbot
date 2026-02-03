@@ -45,6 +45,7 @@ The LLM must output plans conforming to this structure:
 - align_words
 - generate_captions
 - render_subtitles
+- silence_cutter
 
 ### Input/Output Placeholders
 Use these placeholders for dynamic paths:

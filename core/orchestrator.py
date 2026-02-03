@@ -120,6 +120,7 @@ class Orchestrator:
             from tools import ffmpeg_tool
             from tools import whisperx_tool
             from tools import captions_tool
+            from tools import silence_cutter_tool
             logger.info("Tools loaded successfully")
         except ImportError as e:
             logger.warning(f"Some tools failed to load: {e}")
@@ -430,7 +431,8 @@ class Orchestrator:
             "align_words": "align_words",
             "transcribe_and_align": "transcribe_and_align",
             "generate_captions": "generate_ass_file",
-            "render_subtitles": "render_subtitles"
+            "render_subtitles": "render_subtitles",
+            "silence_cutter": "cut_silence"
         }
         
         method_name = method_map.get(tool_type)
@@ -495,5 +497,10 @@ class Orchestrator:
         for job_exec in plan_exec.jobs.values():
             if job_exec.job.job_type == "render_subtitles":
                 return job_exec.resolved_outputs.get("video_file")
+        
+        # Fallback: silence cutter output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "silence_cutter":
+                return job_exec.resolved_outputs.get("output_video_path")
         
         return None

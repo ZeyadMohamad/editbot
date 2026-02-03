@@ -1,0 +1,26 @@
+{
+  "description": "Defaults for silence-based cutting with filler word detection",
+  "defaults": {
+    "threshold_db": -35.0,
+    "min_silence_duration": 0.3,
+    "padding": 0.05,
+    "chunk_ms": 30,
+    "filler_detection": true,
+    "filler_model_size": "small",
+    "filler_language": "auto",
+    "filler_confidence": 0.5,
+    "filler_aggressive": false,
+    "filler_engine": "whisper"
+  },
+  "filler_words": {
+    "english": ["um", "uh", "erm", "er", "ah", "hmm", "mm", "mmm"],
+    "english_loose": ["like", "so", "okay", "right"],
+    "arabic": [ "اممم", "ممم", "إمم", "ااه", "اااه", "هممم"],
+    "arabic_loose": ["طيب", "بس"],
+    "arabic_translit": ["yani", "yaani", "ya'ni", "ya3ni"]
+  },
+  "filler_phrases": {
+    "english": ["you know", "i mean", "sort of", "kind of"],
+    "arabic": ["مش عارف", "ما ادري"]
+  }
+}

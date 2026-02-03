@@ -130,6 +130,7 @@ def interactive_mode():
     print(f"\n{Fore.GRAY}Example prompts:{Style.RESET_ALL}")
     print(f"  - Add yellow captions")
     print(f"  - Add white subtitles at the bottom")
+    print(f"  - Remove silence and filler words, then add captions")
     print(f"  - Caption this video with large bold red text\n")
     
     while True:
@@ -241,6 +242,7 @@ def run_caption_pipeline(
     from tools.ffmpeg_tool import FFmpegTool
     from tools.whisperx_tool import WhisperXTool
     from tools.captions_tool import CaptionsTool
+    from tools.silence_cutter_tool import SilenceCutterTool, should_apply_silence_cut, parse_silence_settings_from_prompt
     from core.config_loader import ConfigLoader
     
     workspace = Path(output_dir) if output_dir else PROJECT_ROOT / "workspace"
@@ -260,6 +262,11 @@ def run_caption_pipeline(
     config_loader = ConfigLoader()
     style_config = parse_style_from_prompt(prompt, config_loader)
     
+    silence_config = config_loader.get_config("silence_cutter") or {}
+    silence_defaults = silence_config.get("defaults", {})
+    silence_settings = parse_silence_settings_from_prompt(prompt, silence_defaults)
+    use_silence_cut = should_apply_silence_cut(prompt)
+    
     print(f"\n{Fore.GRAY}Detected style:{Style.RESET_ALL}")
     print(f"  Font: {style_config.font} ({style_config.font_size}px)")
     print(f"  Position: {style_config.position}")
@@ -274,8 +281,10 @@ def run_caption_pipeline(
     }
     
     try:
+        step_total = 4 + (1 if use_silence_cut else 0)
+        step_index = 1
         # Step 1: Extract audio
-        print(f"\n{Fore.YELLOW}[1/4] 🎵 Extracting audio...{Style.RESET_ALL}")
+        print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎵 Extracting audio...{Style.RESET_ALL}")
         audio_path = workspace / f"{video_name}_audio.wav"
         
         audio_result = ffmpeg.extract_audio(str(video_path), str(audio_path))
@@ -288,8 +297,54 @@ def run_caption_pipeline(
         print(f"{Fore.GREEN}✓ Audio extracted: {audio_path.name}{Style.RESET_ALL}")
         results["outputs"]["audio"] = str(audio_path)
         
-        # Step 2: Transcribe
-        print(f"\n{Fore.YELLOW}[2/4] 🎤 Transcribing speech...{Style.RESET_ALL}")
+        # Step 2: Optional silence cutting
+        if use_silence_cut:
+            step_index += 1
+            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] ✂️  Cutting silences...{Style.RESET_ALL}")
+            
+            silence_tool = SilenceCutterTool()
+            cut_video_path = workspace / f"{video_name}_cut.mp4"
+            cut_audio_path = workspace / f"{video_name}_cut.wav"
+            cut_list_path = workspace / f"{video_name}_cut_list.json"
+            
+            cut_result = silence_tool.cut_silence(
+                audio_path=str(audio_path),
+                video_path=str(video_path),
+                output_path=str(cut_video_path),
+                output_audio_path=str(cut_audio_path),
+                cut_list_path=str(cut_list_path),
+                threshold_db=silence_settings.get("threshold_db"),
+                min_silence_duration=silence_settings.get("min_silence_duration"),
+                padding=silence_settings.get("padding"),
+                chunk_ms=silence_settings.get("chunk_ms"),
+                filler_detection=silence_settings.get("filler_detection"),
+                filler_model_size=silence_settings.get("filler_model_size"),
+                filler_language=silence_settings.get("filler_language"),
+                filler_confidence=silence_settings.get("filler_confidence"),
+                filler_aggressive=silence_settings.get("filler_aggressive"),
+                filler_engine=silence_settings.get("filler_engine"),
+                filler_words=silence_config.get("filler_words"),
+                filler_phrases=silence_config.get("filler_phrases")
+            )
+            
+            if not cut_result.get("success"):
+                results["errors"].append(f"Silence cut failed: {cut_result.get('error')}")
+                print(f"{Fore.RED}✗ Failed to cut silences{Style.RESET_ALL}")
+                return results
+            
+            results["outputs"]["cut_list"] = cut_result.get("cut_list_path")
+            if cut_result.get("output_video_path"):
+                results["outputs"]["cut_video"] = cut_result.get("output_video_path")
+                video_path = Path(cut_result["output_video_path"])
+            if cut_result.get("output_audio_path"):
+                results["outputs"]["cut_audio"] = cut_result.get("output_audio_path")
+                audio_path = Path(cut_result["output_audio_path"])
+            
+            print(f"{Fore.GREEN}✓ Silences removed{Style.RESET_ALL}")
+        
+        # Next step: Transcribe
+        step_index += 1
+        print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎤 Transcribing speech...{Style.RESET_ALL}")
         print(f"{Fore.GRAY}  (First run downloads ~150MB model){Style.RESET_ALL}")
         
         transcription = whisper_tool.transcribe_and_align(str(audio_path))
@@ -308,8 +363,9 @@ def run_caption_pipeline(
             json.dump(transcription, f, indent=2, ensure_ascii=False)
         results["outputs"]["transcript"] = str(transcript_path)
         
-        # Step 3: Generate captions
-        print(f"\n{Fore.YELLOW}[3/4] 📝 Generating captions...{Style.RESET_ALL}")
+        # Step: Generate captions
+        step_index += 1
+        print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 📝 Generating captions...{Style.RESET_ALL}")
         
         ass_path = workspace / f"{video_name}_captions.ass"
         
@@ -333,8 +389,9 @@ def run_caption_pipeline(
         print(f"{Fore.GREEN}✓ Generated {caption_result.get('total_lines', 0)} caption lines{Style.RESET_ALL}")
         results["outputs"]["subtitles"] = str(ass_path)
         
-        # Step 4: Render video with subtitles
-        print(f"\n{Fore.YELLOW}[4/4] 🎬 Rendering final video...{Style.RESET_ALL}")
+        # Step: Render video with subtitles
+        step_index += 1
+        print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎬 Rendering final video...{Style.RESET_ALL}")
         
         output_video = workspace / f"{video_name}_captioned.mp4"
         
