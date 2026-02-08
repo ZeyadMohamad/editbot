@@ -234,6 +234,15 @@ def parse_style_from_prompt(prompt: str, config_loader) -> CaptionStyle:
     return style
 
 
+def should_apply_captions(prompt: str) -> bool:
+    """Heuristic: detect if user asked for captions/subtitles."""
+    prompt_lower = (prompt or "").lower()
+    return any(kw in prompt_lower for kw in [
+        "caption", "captions", "subtitle", "subtitles",
+        "transcribe", "transcription", "karaoke", "word highlight"
+    ])
+
+
 def load_stock_items(stock_arg: Optional[str]) -> Optional[list]:
     """Load stock items from JSON string or file path."""
     if not stock_arg:
@@ -294,12 +303,18 @@ def run_caption_pipeline(
     print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
     
     ffmpeg = FFmpegTool()
-    # Use int8_float16 quantization for medium model - fits well in 4GB VRAM on GPU
-    whisper_tool = WhisperXTool(model_size="large-v3", device="cuda", compute_type="int8_float16")
-    captions = CaptionsTool()
-    
     config_loader = ConfigLoader()
-    style_config = parse_style_from_prompt(prompt, config_loader)
+    use_captions = should_apply_captions(prompt)
+
+    whisper_tool = None
+    captions = None
+    style_config = None
+
+    if use_captions:
+        # Use int8_float16 quantization for medium model - fits well in 4GB VRAM on GPU
+        whisper_tool = WhisperXTool(model_size="large-v3", device="cuda", compute_type="int8_float16")
+        captions = CaptionsTool()
+        style_config = parse_style_from_prompt(prompt, config_loader)
     
     silence_config = config_loader.get_config("silence_cutter") or {}
     silence_defaults = silence_config.get("defaults", {})
@@ -307,10 +322,11 @@ def run_caption_pipeline(
     manual_cut_segments = parse_manual_cut_segments_from_prompt(prompt)
     use_silence_cut = should_apply_silence_cut(prompt) or bool(manual_cut_segments)
     
-    print(f"\n{Fore.GRAY}Detected style:{Style.RESET_ALL}")
-    print(f"  Font: {style_config.font} ({style_config.font_size}px)")
-    print(f"  Position: {style_config.position}")
-    print(f"  Text color: {style_config.primary_color}")
+    if use_captions and style_config:
+        print(f"\n{Fore.GRAY}Detected style:{Style.RESET_ALL}")
+        print(f"  Font: {style_config.font} ({style_config.font_size}px)")
+        print(f"  Position: {style_config.position}")
+        print(f"  Text color: {style_config.primary_color}")
     
     results = {
         "success": False,
@@ -331,7 +347,15 @@ def run_caption_pipeline(
             stock_items = parsed_items
 
     try:
-        step_total = 4 + (1 if use_silence_cut else 0) + (1 if stock_items else 0)
+        step_total = 0
+        if stock_items:
+            step_total += 1
+        if use_silence_cut or use_captions:
+            step_total += 1  # extract audio
+        if use_silence_cut:
+            step_total += 1
+        if use_captions:
+            step_total += 3  # transcribe, captions, render
         step_index = 1
         # Optional: Apply stock footage before audio extraction
         if stock_items:
@@ -345,29 +369,31 @@ def run_caption_pipeline(
             )
             if not stock_result.get("success"):
                 results["errors"].append(f"Stock footage failed: {stock_result.get('error')}")
-                print(f"{Fore.RED}??? Failed to apply stock footage{Style.RESET_ALL}")
+                print(f"{Fore.RED}Failed to apply stock footage{Style.RESET_ALL}")
                 return results
             video_path = Path(stock_result.get("output_path", stock_output))
             results["outputs"]["stock_video"] = str(video_path)
             step_index += 1
 
-        # Step 1: Extract audio
-        print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎵 Extracting audio...{Style.RESET_ALL}")
-        audio_path = workspace / f"{video_name}_audio.wav"
-        
-        audio_result = ffmpeg.extract_audio(str(video_path), str(audio_path))
-        
-        if not audio_result.get("success"):
-            results["errors"].append(f"Audio extraction failed: {audio_result.get('error')}")
-            print(f"{Fore.RED}✗ Failed to extract audio{Style.RESET_ALL}")
-            return results
-        
-        print(f"{Fore.GREEN}✓ Audio extracted: {audio_path.name}{Style.RESET_ALL}")
-        results["outputs"]["audio"] = str(audio_path)
-        
+        audio_path = None
+        if use_silence_cut or use_captions:
+            # Step 1: Extract audio
+            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] Extracting audio...{Style.RESET_ALL}")
+            audio_path = workspace / f"{video_name}_audio.wav"
+            
+            audio_result = ffmpeg.extract_audio(str(video_path), str(audio_path))
+            
+            if not audio_result.get("success"):
+                results["errors"].append(f"Audio extraction failed: {audio_result.get('error')}")
+                print(f"{Fore.RED}Failed to extract audio{Style.RESET_ALL}")
+                return results
+            
+            print(f"{Fore.GREEN}Audio extracted: {audio_path.name}{Style.RESET_ALL}")
+            results["outputs"]["audio"] = str(audio_path)
+            step_index += 1
+
         # Step 2: Optional silence cutting
         if use_silence_cut:
-            step_index += 1
             print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] ✂️  Cutting silences...{Style.RESET_ALL}")
             
             silence_tool = SilenceCutterTool()
@@ -410,9 +436,14 @@ def run_caption_pipeline(
                 audio_path = Path(cut_result["output_audio_path"])
             
             print(f"{Fore.GREEN}✓ Silences removed{Style.RESET_ALL}")
+            step_index += 1
         
+        if not use_captions:
+            results["outputs"]["video"] = str(video_path)
+            results["success"] = True
+            return results
+
         # Next step: Transcribe
-        step_index += 1
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎤 Transcribing speech...{Style.RESET_ALL}")
         print(f"{Fore.GRAY}  (First run downloads ~150MB model){Style.RESET_ALL}")
         
@@ -426,6 +457,7 @@ def run_caption_pipeline(
         words = transcription.get("words", [])
         language = transcription.get("language", "unknown")
         print(f"{Fore.GREEN}✓ Transcribed {len(words)} words (Language: {language}){Style.RESET_ALL}")
+        step_index += 1
         
         transcript_path = workspace / f"{video_name}_transcript.json"
         with open(transcript_path, 'w', encoding='utf-8') as f:
@@ -433,7 +465,6 @@ def run_caption_pipeline(
         results["outputs"]["transcript"] = str(transcript_path)
         
         # Step: Generate captions
-        step_index += 1
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 📝 Generating captions...{Style.RESET_ALL}")
         
         ass_path = workspace / f"{video_name}_captions.ass"
@@ -456,10 +487,10 @@ def run_caption_pipeline(
             return results
         
         print(f"{Fore.GREEN}✓ Generated {caption_result.get('total_lines', 0)} caption lines{Style.RESET_ALL}")
+        step_index += 1
         results["outputs"]["subtitles"] = str(ass_path)
         
         # Step: Render video with subtitles
-        step_index += 1
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎬 Rendering final video...{Style.RESET_ALL}")
         
         output_video = workspace / f"{video_name}_captioned.mp4"
