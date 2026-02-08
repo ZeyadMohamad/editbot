@@ -46,6 +46,7 @@ The LLM must output plans conforming to this structure:
 - generate_captions
 - render_subtitles
 - silence_cutter
+- stock_footage
 
 ### Input/Output Placeholders
 Use these placeholders for dynamic paths:
@@ -58,6 +59,30 @@ Use these placeholders for dynamic paths:
 If the user provides exact timestamps, include:
 ```json
 "manual_cut_segments": [{"start": 18.005, "end": 18.670}]
+```
+
+### Stock Footage (stock_footage)
+Use `stock_items` to describe overlays or insertions:
+```json
+"stock_items": [
+  {
+    "path": "C:/assets/broll.mp4",
+    "mode": "insert",
+    "start_time": 42.0,
+    "end_time": 46.0,
+    "source_start": 3.0,
+    "source_end": 7.0
+  },
+  {
+    "path": "C:/assets/chart.png",
+    "mode": "overlay",
+    "start_time": 12.0,
+    "end_time": 18.0,
+    "position": "top_right",
+    "size": "40%",
+    "margin": "5%"
+  }
+]
 ```
 
 ### Example Complete Plan

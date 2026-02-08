@@ -15,6 +15,7 @@ class JobType(str, Enum):
     RENDER_VIDEO = "render_video"
     RENDER_SUBTITLES = "render_subtitles"
     SILENCE_CUTTER = "silence_cutter"
+    STOCK_FOOTAGE = "stock_footage"
 
 
 class CaptionStyle(BaseModel):

@@ -59,7 +59,7 @@ class Planner:
     
     def __init__(
         self, 
-        model_name: str = "llama3:latest", 
+        model_name: str = "llama3.1:latest", 
         base_path: Optional[str] = None
     ):
         """
@@ -177,6 +177,14 @@ class Planner:
             "صمت", "سكتات", "ازالة", "إزالة"
         ]):
             instructions.append(self.prompt_loader.load("silence_cutter_instructions"))
+
+        # Check for stock footage / b-roll / overlays
+        if any(kw in prompt_lower for kw in [
+            "stock footage", "b-roll", "broll", "cutaway", "overlay", "insert clip",
+            "insert video", "insert image", "add footage", "add b roll", "add b-roll",
+            "place footage", "layer footage"
+        ]):
+            instructions.append(self.prompt_loader.load("stock_footage_instructions"))
         
         # Add plan schema reference
         instructions.append(self.prompt_loader.load("plan_schema"))

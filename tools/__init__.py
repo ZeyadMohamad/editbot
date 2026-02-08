@@ -13,6 +13,7 @@ from tools.ffmpeg_tool import FFmpegTool
 from tools.whisperx_tool import WhisperXTool
 from tools.captions_tool import CaptionsTool
 from tools.silence_cutter_tool import SilenceCutterTool
+from tools.stock_footage_tool import StockFootageTool
 
 # Export for easy access
 __all__ = [
@@ -24,6 +25,7 @@ __all__ = [
     "WhisperXTool",
     "CaptionsTool",
     "SilenceCutterTool",
+    "StockFootageTool",
 ]
 
 

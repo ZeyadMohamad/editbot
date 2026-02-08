@@ -1,0 +1,70 @@
+## STOCK FOOTAGE INSTRUCTIONS
+
+When the user wants to add stock footage, b-roll, overlays, or cutaway clips:
+
+### REQUIRED STEP
+- **stock_footage** - Overlay or insert additional video/image assets into the base video
+
+### INPUT FORMAT
+Provide `stock_items` as a list. Each item should include:
+- **path**: file path to the stock video or image
+- **mode**: `"overlay"` (above original) or `"insert"` (cutaway/extension)
+- **start_time**: time in the original video to place the stock footage
+
+Optional per-item fields:
+- **end_time**: overlay end time OR end of the insert window (base pauses during insert)
+- **duration**: duration for images or to limit a stock clip
+- **source_start**: start time inside the stock video
+- **source_end**: end time inside the stock video
+- **x**, **y**: overlay position in pixels or percent (e.g., "10%") (overlay only)
+- **width**, **height**: overlay size in pixels or percent (overlay only)
+- **position**: friendly anchor like `top_left`, `top_center`, `center`, `bottom_right`
+- **size**: friendly size like `half`, `third`, `quarter`, or `"40%"`
+- **margin**: inset from edges when using `position` (pixels or percent)
+
+### BEHAVIOR
+- **overlay**: stock appears on top of the original video for the specified duration (base audio/video continues). If no size is provided, it defaults to full-frame.
+- **insert**: base video pauses at `start_time`, stock plays, then base resumes (timeline extends).
+
+### WHEN TO ASK FOR CLARIFICATION
+If any stock item is missing required data:
+- Ask for the stock file path(s)
+- Ask for `mode` (overlay vs insert)
+- Ask for placement time(s)
+- For images, ask for duration or end_time
+
+Set `success=false` and add missing inputs (e.g., `stock_items`).
+
+### EXAMPLE JOB
+```json
+{
+  "job_id": "job_2",
+  "job_type": "stock_footage",
+  "inputs": {
+    "video_path": "{input_video}",
+    "stock_items": [
+      {
+        "path": "C:/assets/broll.mp4",
+        "mode": "insert",
+        "start_time": 42.0,
+        "source_start": 3.0,
+        "source_end": 7.0
+      },
+      {
+        "path": "C:/assets/chart.png",
+        "mode": "overlay",
+        "start_time": 12.0,
+        "end_time": 18.0,
+        "position": "top_right",
+        "size": "40%",
+        "margin": "5%"
+      }
+    ],
+    "output_path": "{output_dir}/video_with_stock.mp4"
+  },
+  "outputs": {
+    "video_file": "{output_dir}/video_with_stock.mp4"
+  },
+  "depends_on": []
+}
+```

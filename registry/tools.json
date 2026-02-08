@@ -10,16 +10,38 @@
       "method": "extract_audio",
       "category": "audio",
       "inputs": {
-        "video_path": {"type": "file", "required": true, "description": "Path to input video"},
-        "output_path": {"type": "file", "required": true, "description": "Path for output audio"},
-        "sample_rate": {"type": "int", "required": false, "default": 16000},
-        "audio_format": {"type": "string", "required": false, "default": "wav"}
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to input video"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path for output audio"
+        },
+        "sample_rate": {
+          "type": "int",
+          "required": false,
+          "default": 16000
+        },
+        "audio_format": {
+          "type": "string",
+          "required": false,
+          "default": "wav"
+        }
       },
       "outputs": {
-        "audio_file": {"type": "file", "description": "Extracted audio file"}
+        "audio_file": {
+          "type": "file",
+          "description": "Extracted audio file"
+        }
       },
       "depends_on": [],
-      "config_files": ["ffmpeg_settings.json", "supported_formats.json"]
+      "config_files": [
+        "ffmpeg_settings.json",
+        "supported_formats.json"
+      ]
     },
     "get_video_info": {
       "name": "Get Video Info",
@@ -29,16 +51,34 @@
       "method": "get_video_info",
       "category": "utility",
       "inputs": {
-        "video_path": {"type": "file", "required": true, "description": "Path to video file"}
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to video file"
+        }
       },
       "outputs": {
-        "duration": {"type": "float", "description": "Video duration in seconds"},
-        "width": {"type": "int", "description": "Video width"},
-        "height": {"type": "int", "description": "Video height"},
-        "fps": {"type": "float", "description": "Frames per second"}
+        "duration": {
+          "type": "float",
+          "description": "Video duration in seconds"
+        },
+        "width": {
+          "type": "int",
+          "description": "Video width"
+        },
+        "height": {
+          "type": "int",
+          "description": "Video height"
+        },
+        "fps": {
+          "type": "float",
+          "description": "Frames per second"
+        }
       },
       "depends_on": [],
-      "config_files": ["supported_formats.json"]
+      "config_files": [
+        "supported_formats.json"
+      ]
     },
     "transcribe": {
       "name": "Transcribe Audio",
@@ -48,16 +88,38 @@
       "method": "transcribe",
       "category": "transcription",
       "inputs": {
-        "audio_path": {"type": "file", "required": true, "description": "Path to audio file"},
-        "language": {"type": "string", "required": false, "default": "auto", "description": "Language code or 'auto'"}
+        "audio_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to audio file"
+        },
+        "language": {
+          "type": "string",
+          "required": false,
+          "default": "auto",
+          "description": "Language code or 'auto'"
+        }
       },
       "outputs": {
-        "text": {"type": "string", "description": "Full transcribed text"},
-        "language": {"type": "string", "description": "Detected language"},
-        "segments": {"type": "array", "description": "Transcript segments with timestamps"}
+        "text": {
+          "type": "string",
+          "description": "Full transcribed text"
+        },
+        "language": {
+          "type": "string",
+          "description": "Detected language"
+        },
+        "segments": {
+          "type": "array",
+          "description": "Transcript segments with timestamps"
+        }
       },
-      "depends_on": ["extract_audio"],
-      "config_files": ["supported_languages.json"]
+      "depends_on": [
+        "extract_audio"
+      ],
+      "config_files": [
+        "supported_languages.json"
+      ]
     },
     "align_words": {
       "name": "Align Words",
@@ -67,12 +129,21 @@
       "method": "align_words",
       "category": "transcription",
       "inputs": {
-        "transcription_result": {"type": "object", "required": true, "description": "Result from transcribe tool"}
+        "transcription_result": {
+          "type": "object",
+          "required": true,
+          "description": "Result from transcribe tool"
+        }
       },
       "outputs": {
-        "words": {"type": "array", "description": "Words with start/end timestamps"}
+        "words": {
+          "type": "array",
+          "description": "Words with start/end timestamps"
+        }
       },
-      "depends_on": ["transcribe"],
+      "depends_on": [
+        "transcribe"
+      ],
       "config_files": []
     },
     "generate_captions": {
@@ -83,15 +154,38 @@
       "method": "generate_ass_file",
       "category": "captions",
       "inputs": {
-        "words": {"type": "array", "required": true, "description": "Words with timestamps"},
-        "output_path": {"type": "file", "required": true, "description": "Output ASS file path"},
-        "style": {"type": "object", "required": false, "description": "Caption style configuration"}
+        "words": {
+          "type": "array",
+          "required": true,
+          "description": "Words with timestamps"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Output ASS file path"
+        },
+        "style": {
+          "type": "object",
+          "required": false,
+          "description": "Caption style configuration"
+        }
       },
       "outputs": {
-        "ass_file": {"type": "file", "description": "Generated ASS subtitle file"}
+        "ass_file": {
+          "type": "file",
+          "description": "Generated ASS subtitle file"
+        }
       },
-      "depends_on": ["align_words"],
-      "config_files": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json"]
+      "depends_on": [
+        "align_words"
+      ],
+      "config_files": [
+        "fonts.json",
+        "colors.json",
+        "highlight_styles.json",
+        "text_styles.json",
+        "positions.json"
+      ]
     },
     "render_subtitles": {
       "name": "Render Subtitles",
@@ -101,18 +195,100 @@
       "method": "render_subtitles",
       "category": "video",
       "inputs": {
-        "video_path": {"type": "file", "required": true, "description": "Input video path"},
-        "subtitle_path": {"type": "file", "required": true, "description": "ASS subtitle file path"},
-        "output_path": {"type": "file", "required": true, "description": "Output video path"},
-        "codec": {"type": "string", "required": false, "default": "libx264"},
-        "preset": {"type": "string", "required": false, "default": "medium"},
-        "crf": {"type": "int", "required": false, "default": 23}
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Input video path"
+        },
+        "subtitle_path": {
+          "type": "file",
+          "required": true,
+          "description": "ASS subtitle file path"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Output video path"
+        },
+        "codec": {
+          "type": "string",
+          "required": false,
+          "default": "libx264"
+        },
+        "preset": {
+          "type": "string",
+          "required": false,
+          "default": "medium"
+        },
+        "crf": {
+          "type": "int",
+          "required": false,
+          "default": 23
+        }
       },
       "outputs": {
-        "video_file": {"type": "file", "description": "Video with burned-in subtitles"}
+        "video_file": {
+          "type": "file",
+          "description": "Video with burned-in subtitles"
+        }
       },
-      "depends_on": ["generate_captions"],
-      "config_files": ["ffmpeg_settings.json", "supported_formats.json"]
+      "depends_on": [
+        "generate_captions"
+      ],
+      "config_files": [
+        "ffmpeg_settings.json",
+        "supported_formats.json"
+      ]
+    },
+    "stock_footage": {
+      "name": "Stock Footage",
+      "description": "Overlay or insert stock videos/images into a base video",
+      "module": "tools.stock_footage_tool",
+      "class": "StockFootageTool",
+      "method": "apply_stock_footage",
+      "category": "video",
+      "inputs": {
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to base video"
+        },
+        "stock_items": {
+          "type": "array",
+          "required": true,
+          "description": "List of stock items with path, mode, and timing"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Output video path"
+        },
+        "codec": {
+          "type": "string",
+          "required": false,
+          "default": "libx264"
+        },
+        "preset": {
+          "type": "string",
+          "required": false,
+          "default": "medium"
+        },
+        "crf": {
+          "type": "int",
+          "required": false,
+          "default": 23
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Video with stock footage"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "supported_formats.json"
+      ]
     },
     "silence_cutter": {
       "name": "Silence Cutter",
@@ -122,28 +298,99 @@
       "method": "cut_silence",
       "category": "audio",
       "inputs": {
-        "audio_path": {"type": "file", "required": true, "description": "Path to extracted WAV audio"},
-        "video_path": {"type": "file", "required": false, "description": "Optional input video path"},
-        "output_path": {"type": "file", "required": false, "description": "Output trimmed video path"},
-        "output_audio_path": {"type": "file", "required": false, "description": "Output trimmed audio path"},
-        "threshold_db": {"type": "float", "required": false, "default": -35.0},
-        "min_silence_duration": {"type": "float", "required": false, "default": 0.3},
-        "padding": {"type": "float", "required": false, "default": 0.05},
-        "chunk_ms": {"type": "int", "required": false, "default": 30},
-        "filler_detection": {"type": "bool", "required": false, "default": true},
-        "filler_model_size": {"type": "string", "required": false, "default": "small"},
-        "filler_language": {"type": "string", "required": false, "default": "auto"},
-        "filler_confidence": {"type": "float", "required": false, "default": 0.5},
-        "filler_aggressive": {"type": "bool", "required": false, "default": false},
-        "manual_cut_segments": {"type": "array", "required": false, "description": "List of manual cut ranges {start,end} in seconds. If provided, overrides auto detection."}
+        "audio_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to extracted WAV audio"
+        },
+        "video_path": {
+          "type": "file",
+          "required": false,
+          "description": "Optional input video path"
+        },
+        "output_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output trimmed video path"
+        },
+        "output_audio_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output trimmed audio path"
+        },
+        "threshold_db": {
+          "type": "float",
+          "required": false,
+          "default": -35.0
+        },
+        "min_silence_duration": {
+          "type": "float",
+          "required": false,
+          "default": 0.3
+        },
+        "padding": {
+          "type": "float",
+          "required": false,
+          "default": 0.05
+        },
+        "chunk_ms": {
+          "type": "int",
+          "required": false,
+          "default": 30
+        },
+        "filler_detection": {
+          "type": "bool",
+          "required": false,
+          "default": true
+        },
+        "filler_model_size": {
+          "type": "string",
+          "required": false,
+          "default": "small"
+        },
+        "filler_language": {
+          "type": "string",
+          "required": false,
+          "default": "auto"
+        },
+        "filler_confidence": {
+          "type": "float",
+          "required": false,
+          "default": 0.5
+        },
+        "filler_aggressive": {
+          "type": "bool",
+          "required": false,
+          "default": false
+        },
+        "manual_cut_segments": {
+          "type": "array",
+          "required": false,
+          "description": "List of manual cut ranges {start,end} in seconds. If provided, overrides auto detection."
+        }
       },
       "outputs": {
-        "cut_list_path": {"type": "file", "description": "JSON cut list"},
-        "output_video_path": {"type": "file", "description": "Trimmed video"},
-        "output_audio_path": {"type": "file", "description": "Trimmed audio"}
+        "cut_list_path": {
+          "type": "file",
+          "description": "JSON cut list"
+        },
+        "output_video_path": {
+          "type": "file",
+          "description": "Trimmed video"
+        },
+        "output_audio_path": {
+          "type": "file",
+          "description": "Trimmed audio"
+        }
       },
-      "depends_on": ["extract_audio"],
-      "config_files": ["silence_cutter.json", "supported_formats.json", "supported_languages.json"]
+      "depends_on": [
+        "extract_audio"
+      ],
+      "config_files": [
+        "silence_cutter.json",
+        "supported_formats.json",
+        "supported_languages.json"
+      ]
     }
   },
   "categories": {
@@ -156,11 +403,20 @@
   "pipelines": {
     "caption_pipeline": {
       "description": "Full pipeline for adding captions to video",
-      "steps": ["extract_audio", "transcribe", "align_words", "generate_captions", "render_subtitles"]
+      "steps": [
+        "extract_audio",
+        "transcribe",
+        "align_words",
+        "generate_captions",
+        "render_subtitles"
+      ]
     },
     "silence_cut_pipeline": {
       "description": "Remove silence and filler words from a video",
-      "steps": ["extract_audio", "silence_cutter"]
+      "steps": [
+        "extract_audio",
+        "silence_cutter"
+      ]
     }
   }
 }

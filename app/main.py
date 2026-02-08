@@ -234,10 +234,42 @@ def parse_style_from_prompt(prompt: str, config_loader) -> CaptionStyle:
     return style
 
 
+def load_stock_items(stock_arg: Optional[str]) -> Optional[list]:
+    """Load stock items from JSON string or file path."""
+    if not stock_arg:
+        return None
+    raw = stock_arg.strip()
+    if not raw:
+        return None
+
+    try:
+        possible_path = Path(raw.strip('"').strip("'"))
+        if possible_path.exists():
+            raw = possible_path.read_text(encoding="utf-8")
+    except Exception:
+        pass
+
+    try:
+        data = json.loads(raw)
+    except Exception as e:
+        print(f"{Fore.RED}Error: Invalid stock JSON ({e}){Style.RESET_ALL}")
+        sys.exit(1)
+
+    if isinstance(data, dict) and "stock_items" in data:
+        data = data["stock_items"]
+
+    if not isinstance(data, list):
+        print(f"{Fore.RED}Error: Stock items must be a JSON list{Style.RESET_ALL}")
+        sys.exit(1)
+
+    return data
+
+
 def run_caption_pipeline(
     video_path: Path, 
     prompt: str, 
-    output_dir: Optional[str] = None
+    output_dir: Optional[str] = None,
+    stock_items: Optional[list] = None
 ) -> Dict[str, Any]:
     """Run the full captioning pipeline."""
     from tools.ffmpeg_tool import FFmpegTool
@@ -249,6 +281,7 @@ def run_caption_pipeline(
         parse_silence_settings_from_prompt,
         parse_manual_cut_segments_from_prompt
     )
+    from tools.stock_footage_tool import StockFootageTool, parse_stock_items_from_prompt
     from core.config_loader import ConfigLoader
     
     workspace = Path(output_dir) if output_dir else PROJECT_ROOT / "workspace"
@@ -286,10 +319,38 @@ def run_caption_pipeline(
         "outputs": {},
         "errors": []
     }
-    
+
+    if stock_items is None:
+        parsed_items, parse_errors = parse_stock_items_from_prompt(prompt)
+        if parse_errors:
+            for err in parse_errors:
+                print(f"{Fore.RED}Error: {err}{Style.RESET_ALL}")
+            results["errors"].extend(parse_errors)
+            return results
+        if parsed_items:
+            stock_items = parsed_items
+
     try:
-        step_total = 4 + (1 if use_silence_cut else 0)
+        step_total = 4 + (1 if use_silence_cut else 0) + (1 if stock_items else 0)
         step_index = 1
+        # Optional: Apply stock footage before audio extraction
+        if stock_items:
+            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] ???? Applying stock footage...{Style.RESET_ALL}")
+            stock_tool = StockFootageTool()
+            stock_output = workspace / f"{video_name}_stock.mp4"
+            stock_result = stock_tool.apply_stock_footage(
+                video_path=str(video_path),
+                stock_items=stock_items,
+                output_path=str(stock_output)
+            )
+            if not stock_result.get("success"):
+                results["errors"].append(f"Stock footage failed: {stock_result.get('error')}")
+                print(f"{Fore.RED}??? Failed to apply stock footage{Style.RESET_ALL}")
+                return results
+            video_path = Path(stock_result.get("output_path", stock_output))
+            results["outputs"]["stock_video"] = str(video_path)
+            step_index += 1
+
         # Step 1: Extract audio
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎵 Extracting audio...{Style.RESET_ALL}")
         audio_path = workspace / f"{video_name}_audio.wav"
@@ -426,10 +487,10 @@ def run_caption_pipeline(
     return results
 
 
-def process_video(video_path: Path, prompt: str, output_dir: str = None) -> Dict[str, Any]:
+def process_video(video_path: Path, prompt: str, output_dir: str = None, stock_items: Optional[list] = None) -> Dict[str, Any]:
     """Process video with the given prompt"""
     
-    result = run_caption_pipeline(video_path, prompt, output_dir)
+    result = run_caption_pipeline(video_path, prompt, output_dir, stock_items)
     
     print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
     
@@ -471,6 +532,7 @@ Examples:
     parser.add_argument("-v", "--video", type=str, help="Path to input video file")
     parser.add_argument("-p", "--prompt", type=str, help="Editing prompt")
     parser.add_argument("-o", "--output", type=str, default=None, help="Output directory")
+    parser.add_argument("--stock", type=str, default=None, help="JSON list or path to JSON file for stock items")
     parser.add_argument("-i", "--interactive", action="store_true", help="Interactive mode")
     
     args = parser.parse_args()
@@ -486,7 +548,8 @@ Examples:
         video_path = validate_video(args.video)
         prompt = args.prompt
     
-    result = process_video(video_path, prompt, args.output)
+    stock_items = load_stock_items(args.stock)
+    result = process_video(video_path, prompt, args.output, stock_items)
     
     sys.exit(0 if result.get("success") else 1)
 

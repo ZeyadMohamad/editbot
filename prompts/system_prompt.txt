@@ -47,6 +47,7 @@ Always respond with valid JSON:
 - Style preferences are vague
 - Multiple interpretations possible
 - User asks to cut/trim/remove parts without specifying auto vs exact timestamps
+- User asks to add stock footage without providing stock file paths or placement details
 
 ## PLAN GENERATION GUIDELINES
 1. Break down request into atomic tool calls

@@ -121,6 +121,7 @@ class Orchestrator:
             from tools import whisperx_tool
             from tools import captions_tool
             from tools import silence_cutter_tool
+            from tools import stock_footage_tool
             logger.info("Tools loaded successfully")
         except ImportError as e:
             logger.warning(f"Some tools failed to load: {e}")
@@ -432,7 +433,8 @@ class Orchestrator:
             "transcribe_and_align": "transcribe_and_align",
             "generate_captions": "generate_ass_file",
             "render_subtitles": "render_subtitles",
-            "silence_cutter": "cut_silence"
+            "silence_cutter": "cut_silence",
+            "stock_footage": "apply_stock_footage"
         }
         
         method_name = method_map.get(tool_type)
