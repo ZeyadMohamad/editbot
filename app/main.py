@@ -131,6 +131,7 @@ def interactive_mode():
     print(f"  - Add yellow captions")
     print(f"  - Add white subtitles at the bottom")
     print(f"  - Remove silence and filler words, then add captions")
+    print(f"  - Cut from 18.005 to 18.670, then add captions")
     print(f"  - Caption this video with large bold red text\n")
     
     while True:
@@ -242,7 +243,12 @@ def run_caption_pipeline(
     from tools.ffmpeg_tool import FFmpegTool
     from tools.whisperx_tool import WhisperXTool
     from tools.captions_tool import CaptionsTool
-    from tools.silence_cutter_tool import SilenceCutterTool, should_apply_silence_cut, parse_silence_settings_from_prompt
+    from tools.silence_cutter_tool import (
+        SilenceCutterTool,
+        should_apply_silence_cut,
+        parse_silence_settings_from_prompt,
+        parse_manual_cut_segments_from_prompt
+    )
     from core.config_loader import ConfigLoader
     
     workspace = Path(output_dir) if output_dir else PROJECT_ROOT / "workspace"
@@ -265,7 +271,8 @@ def run_caption_pipeline(
     silence_config = config_loader.get_config("silence_cutter") or {}
     silence_defaults = silence_config.get("defaults", {})
     silence_settings = parse_silence_settings_from_prompt(prompt, silence_defaults)
-    use_silence_cut = should_apply_silence_cut(prompt)
+    manual_cut_segments = parse_manual_cut_segments_from_prompt(prompt)
+    use_silence_cut = should_apply_silence_cut(prompt) or bool(manual_cut_segments)
     
     print(f"\n{Fore.GRAY}Detected style:{Style.RESET_ALL}")
     print(f"  Font: {style_config.font} ({style_config.font_size}px)")
@@ -313,6 +320,7 @@ def run_caption_pipeline(
                 output_path=str(cut_video_path),
                 output_audio_path=str(cut_audio_path),
                 cut_list_path=str(cut_list_path),
+                manual_cut_segments=manual_cut_segments if manual_cut_segments else None,
                 threshold_db=silence_settings.get("threshold_db"),
                 min_silence_duration=silence_settings.get("min_silence_duration"),
                 padding=silence_settings.get("padding"),

@@ -91,11 +91,22 @@ SILENCE_KEYWORDS = [
     "سكتات", "فواصل", "تمتمة", "يعني", "اممم", "ممم"
 ]
 
+# Manual cut parsing
+MANUAL_CUT_VERBS = ["cut", "trim", "remove", "delete", "snip", "excise"]
+TIME_TOKEN_PATTERN = r"(?:\d+(?::\d+){1,2}(?:\.\d+)?|\d+(?:\.\d+)?)"
+CUT_RANGE_REGEX = re.compile(
+    rf"(?:{'|'.join(MANUAL_CUT_VERBS)})\s*(?:out|from)?\s*"
+    rf"({TIME_TOKEN_PATTERN})\s*(?:to|until|through|-)\s*({TIME_TOKEN_PATTERN})",
+    re.IGNORECASE
+)
+
 
 def should_apply_silence_cut(prompt: str) -> bool:
     """Heuristic: detect if user asked for silence/filler removal."""
     prompt_lower = (prompt or "").lower()
-    return any(k in prompt_lower for k in SILENCE_KEYWORDS)
+    if any(k in prompt_lower for k in SILENCE_KEYWORDS):
+        return True
+    return bool(parse_manual_cut_segments_from_prompt(prompt))
 
 
 def parse_silence_settings_from_prompt(prompt: str, defaults: Dict[str, Any]) -> Dict[str, Any]:
@@ -149,6 +160,56 @@ def parse_silence_settings_from_prompt(prompt: str, defaults: Dict[str, Any]) ->
         settings["filler_aggressive"] = True
 
     return settings
+
+
+def _parse_timecode_to_seconds(value: str) -> Optional[float]:
+    """Parse timecodes like 18.005, 1:02.5, 00:00:18.005 into seconds."""
+    if value is None:
+        return None
+    text = str(value).strip().lower()
+    text = re.sub(r"[a-z]+$", "", text).strip(" ,.;")
+    if not text:
+        return None
+
+    if ":" in text:
+        parts = text.split(":")
+        if len(parts) not in (2, 3):
+            return None
+        try:
+            nums = [float(p) for p in parts]
+        except ValueError:
+            return None
+        if len(nums) == 2:
+            minutes, seconds = nums
+            return minutes * 60.0 + seconds
+        hours, minutes, seconds = nums
+        return hours * 3600.0 + minutes * 60.0 + seconds
+
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def parse_manual_cut_segments_from_prompt(prompt: str) -> List[Dict[str, float]]:
+    """Extract manual cut ranges from prompt like 'cut from 18.005 to 18.670'."""
+    if not prompt:
+        return []
+
+    segments: List[Dict[str, float]] = []
+    for match in CUT_RANGE_REGEX.finditer(prompt):
+        start_raw, end_raw = match.group(1), match.group(2)
+        start = _parse_timecode_to_seconds(start_raw)
+        end = _parse_timecode_to_seconds(end_raw)
+        if start is None or end is None:
+            continue
+        if end < start:
+            start, end = end, start
+        if end == start:
+            continue
+        segments.append({"start": float(start), "end": float(end)})
+
+    return segments
 
 
 def _contains_arabic(text: str) -> bool:
@@ -389,6 +450,7 @@ class SilenceCutterTool(BaseTool):
         filler_engine: str = DEFAULT_SETTINGS["filler_engine"],
         filler_words: Optional[Dict[str, List[str]]] = None,
         filler_phrases: Optional[Dict[str, List[str]]] = None,
+        manual_cut_segments: Optional[List[Any]] = None,
         cut_list_path: Optional[str] = None,
         codec: str = "libx264",
         preset: str = "medium",
@@ -397,6 +459,7 @@ class SilenceCutterTool(BaseTool):
         """
         Detect silence/filler segments and optionally cut video/audio.
         Returns cut list and paths to trimmed outputs if created.
+        If manual_cut_segments is provided, it overrides automatic detection.
         """
         # Validate audio
         audio_error = self.validate_file_exists(audio_path)
@@ -415,54 +478,77 @@ class SilenceCutterTool(BaseTool):
             "filler_aggressive": filler_aggressive,
             "filler_engine": filler_engine
         }
+        manual_mode = manual_cut_segments is not None
+        cut_mode = "auto"
 
-        # Analyze silence
-        analysis = self._detect_silence_segments(
-            audio_path=audio_path,
-            threshold_db=threshold_db,
-            min_silence_duration=min_silence_duration,
-            chunk_ms=chunk_ms
-        )
-        if not analysis.get("success"):
-            return analysis
+        if manual_mode:
+            duration, duration_error = self._get_audio_duration(audio_path)
+            if duration_error:
+                return {"success": False, "error": duration_error}
 
-        silence_segments = analysis.get("silence_segments", [])
-        duration = analysis.get("audio_duration", 0.0)
+            manual_segments = self._normalize_manual_cut_segments(manual_cut_segments, duration)
+            if not manual_segments:
+                return {"success": False, "error": "No valid manual cut segments provided"}
 
-        filler_segments: List[Dict[str, Any]] = []
-        if filler_detection:
-            filler_segments = self._detect_filler_segments(
+            cut_mode = "manual"
+            silence_segments = []
+            filler_segments = []
+            cut_segments = _merge_segments(manual_segments)
+            keep_segments = _build_keep_segments(duration, cut_segments)
+            settings["manual_cut_segments"] = manual_segments
+        else:
+            # Analyze silence
+            analysis = self._detect_silence_segments(
                 audio_path=audio_path,
-                model_size=filler_model_size,
-                language=filler_language,
-                min_confidence=filler_confidence,
-                aggressive=filler_aggressive,
-                filler_words=filler_words,
-                filler_phrases=filler_phrases,
-                filler_engine=filler_engine
+                threshold_db=threshold_db,
+                min_silence_duration=min_silence_duration,
+                chunk_ms=chunk_ms
             )
+            if not analysis.get("success"):
+                return analysis
 
-        # Combine segments
-        segments = []
-        segments.extend([dict(s, type="silence") for s in silence_segments])
-        segments.extend([dict(s, type="filler") for s in filler_segments])
+            silence_segments = analysis.get("silence_segments", [])
+            duration = analysis.get("audio_duration", 0.0)
 
-        # Apply padding (micro margins)
-        padded = self._apply_padding(segments, padding, duration)
-        cut_segments = _merge_segments(padded)
-        keep_segments = _build_keep_segments(duration, cut_segments)
+            filler_segments: List[Dict[str, Any]] = []
+            if filler_detection:
+                filler_segments = self._detect_filler_segments(
+                    audio_path=audio_path,
+                    model_size=filler_model_size,
+                    language=filler_language,
+                    min_confidence=filler_confidence,
+                    aggressive=filler_aggressive,
+                    filler_words=filler_words,
+                    filler_phrases=filler_phrases,
+                    filler_engine=filler_engine
+                )
+
+            # Combine segments
+            segments = []
+            segments.extend([dict(s, type="silence") for s in silence_segments])
+            segments.extend([dict(s, type="filler") for s in filler_segments])
+
+            # Apply padding (micro margins)
+            padded = self._apply_padding(segments, padding, duration)
+            cut_segments = _merge_segments(padded)
+            keep_segments = _build_keep_segments(duration, cut_segments)
+
+        settings["cut_mode"] = cut_mode
 
         # Save cut list
         cut_list = {
             "audio_path": audio_path,
             "video_path": video_path,
             "settings": settings,
+            "cut_mode": cut_mode,
             "audio_duration": duration,
             "silence_segments": silence_segments,
             "filler_segments": filler_segments,
             "cut_segments": cut_segments,
             "keep_segments": keep_segments
         }
+        if manual_mode:
+            cut_list["manual_cut_segments"] = settings.get("manual_cut_segments", [])
 
         cut_list_path = self._resolve_cut_list_path(cut_list_path, output_path, output_audio_path, audio_path)
         if cut_list_path:
@@ -506,10 +592,12 @@ class SilenceCutterTool(BaseTool):
         return {
             "success": True,
             "audio_duration": duration,
+            "cut_mode": cut_mode,
             "silence_segments": silence_segments,
             "filler_segments": filler_segments,
             "cut_segments": cut_segments,
             "keep_segments": keep_segments,
+            "manual_cut_segments": settings.get("manual_cut_segments", []) if manual_mode else [],
             "cut_list_path": cut_list_path,
             "output_video_path": output_video_path,
             "output_audio_path": output_audio_path_resolved
@@ -518,6 +606,69 @@ class SilenceCutterTool(BaseTool):
     # -----------------------------
     # Internal helpers
     # -----------------------------
+    def _get_audio_duration(self, audio_path: str) -> Tuple[Optional[float], Optional[str]]:
+        try:
+            with wave.open(audio_path, "rb") as wf:
+                sample_rate = wf.getframerate()
+                total_frames = wf.getnframes()
+                duration = total_frames / float(sample_rate) if sample_rate else 0.0
+                return duration, None
+        except wave.Error as e:
+            return None, f"Invalid WAV file: {e}"
+        except Exception as e:
+            return None, str(e)
+
+    def _normalize_manual_cut_segments(
+        self,
+        segments: Optional[List[Any]],
+        duration: float
+    ) -> List[Dict[str, Any]]:
+        if not segments:
+            return []
+
+        normalized: List[Dict[str, Any]] = []
+        for seg in segments:
+            start = None
+            end = None
+
+            if isinstance(seg, dict):
+                start = seg.get("start", seg.get("from"))
+                end = seg.get("end", seg.get("to"))
+            elif isinstance(seg, (list, tuple)) and len(seg) >= 2:
+                start, end = seg[0], seg[1]
+
+            if start is None or end is None:
+                continue
+
+            if isinstance(start, str):
+                start = _parse_timecode_to_seconds(start)
+            if isinstance(end, str):
+                end = _parse_timecode_to_seconds(end)
+
+            try:
+                start_val = float(start)
+                end_val = float(end)
+            except Exception:
+                continue
+
+            if end_val < start_val:
+                start_val, end_val = end_val, start_val
+
+            if duration > 0:
+                start_val = max(0.0, min(start_val, duration))
+                end_val = max(0.0, min(end_val, duration))
+
+            if end_val <= start_val:
+                continue
+
+            normalized.append({
+                "start": start_val,
+                "end": end_val,
+                "duration": end_val - start_val,
+                "type": "manual"
+            })
+
+        return normalized
 
     def _resolve_cut_list_path(
         self,

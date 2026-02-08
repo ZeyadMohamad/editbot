@@ -12,6 +12,20 @@ If captions are also requested:
 2. Use **output_video_path** (trimmed video) for later steps
 3. Use **output_audio_path** (trimmed audio) for transcription
 
+### MANUAL CUT MODE (EXACT TIMESTAMPS)
+If the user provides exact cut ranges (e.g., "cut from 18.005 to 18.670"):
+- Use **silence_cutter** with **manual_cut_segments**
+- Each segment is an object: {"start": seconds, "end": seconds}
+- This overrides automatic silence/filler detection
+- Do not apply padding unless the user explicitly asks
+
+### WHEN USER DOES NOT SPECIFY CUT MODE
+If the user asks to cut/trim/remove parts but does not specify timestamps or auto detection:
+- Ask for clarification and provide **two options**:
+  1) Auto-cut using silence/filler detection
+  2) Manual cut with exact timestamps (e.g., "cut from 18.005 to 18.670")
+- Set success=false, add the missing input (e.g., "cut_mode" or "manual_cut_segments")
+
 ### KEY PARAMETERS
 - **threshold_db**: dBFS threshold for silence (default from config)
 - **min_silence_duration**: seconds of silence required to cut (e.g., 0.3s)

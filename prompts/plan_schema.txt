@@ -54,6 +54,12 @@ Use these placeholders for dynamic paths:
 - {job_id}: Current job's ID
 - {output_dir}: Final output directory
 
+### Manual Cut Segments (silence_cutter)
+If the user provides exact timestamps, include:
+```json
+"manual_cut_segments": [{"start": 18.005, "end": 18.670}]
+```
+
 ### Example Complete Plan
 ```json
 {

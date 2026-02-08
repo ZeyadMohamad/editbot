@@ -46,6 +46,7 @@ Always respond with valid JSON:
 - Video path not provided
 - Style preferences are vague
 - Multiple interpretations possible
+- User asks to cut/trim/remove parts without specifying auto vs exact timestamps
 
 ## PLAN GENERATION GUIDELINES
 1. Break down request into atomic tool calls

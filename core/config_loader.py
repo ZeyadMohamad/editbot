@@ -114,7 +114,14 @@ class ConfigLoader:
             "transcribe": ["transcribe", "speech to text", "convert speech"],
             "export_video": ["export", "save", "output", "render"],
             "style_captions": ["style", "font", "color", "highlight", "format"],
-            "remove_silence": ["silence", "remove silence", "cut silence", "trim silence", "pause", "remove pauses", "dead air", "filler", "filler words", "um", "uh", "you know", "يعني", "اممم", "ممم", "ازالة الصمت", "إزالة الصمت"]
+            "remove_silence": [
+                "silence", "remove silence", "cut silence", "trim silence",
+                "pause", "remove pauses", "dead air", "filler", "filler words",
+                "um", "uh", "you know",
+                "cut from", "trim from", "remove from", "delete from", "cut between",
+                "timestamps", "timecode",
+                "يعني", "اممم", "ممم", "ازالة الصمت", "إزالة الصمت"
+            ]
         }
         
         for intent, phrases in intent_phrases.items():

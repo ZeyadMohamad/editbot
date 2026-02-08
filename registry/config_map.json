@@ -3,49 +3,256 @@
   "version": "1.0.0",
   "keyword_mapping": {
     "fonts.json": {
-      "keywords": ["font", "typeface", "arial", "montserrat", "roboto", "impact", "comic sans", "georgia", "verdana", "calibri", "courier", "times new roman", "trebuchet", "open sans"],
-      "intents": ["change_font", "set_font", "font_style"]
+      "keywords": [
+        "font",
+        "typeface",
+        "arial",
+        "montserrat",
+        "roboto",
+        "impact",
+        "comic sans",
+        "georgia",
+        "verdana",
+        "calibri",
+        "courier",
+        "times new roman",
+        "trebuchet",
+        "open sans"
+      ],
+      "intents": [
+        "change_font",
+        "set_font",
+        "font_style"
+      ]
     },
     "colors.json": {
-      "keywords": ["color", "colour", "red", "blue", "green", "yellow", "white", "black", "orange", "purple", "pink", "cyan", "magenta", "gold", "silver", "teal", "coral", "lime"],
-      "intents": ["change_color", "set_color", "highlight_color", "text_color", "outline_color"]
+      "keywords": [
+        "color",
+        "colour",
+        "red",
+        "blue",
+        "green",
+        "yellow",
+        "white",
+        "black",
+        "orange",
+        "purple",
+        "pink",
+        "cyan",
+        "magenta",
+        "gold",
+        "silver",
+        "teal",
+        "coral",
+        "lime"
+      ],
+      "intents": [
+        "change_color",
+        "set_color",
+        "highlight_color",
+        "text_color",
+        "outline_color"
+      ]
     },
     "highlight_styles.json": {
-      "keywords": ["highlight", "karaoke", "word highlight", "word by word", "fill", "glow", "bounce", "pop", "scale", "underline", "sweep", "effect"],
-      "intents": ["highlight_words", "karaoke_effect", "word_effect"]
+      "keywords": [
+        "highlight",
+        "karaoke",
+        "word highlight",
+        "word by word",
+        "fill",
+        "glow",
+        "bounce",
+        "pop",
+        "scale",
+        "underline",
+        "sweep",
+        "effect"
+      ],
+      "intents": [
+        "highlight_words",
+        "karaoke_effect",
+        "word_effect"
+      ]
     },
     "text_styles.json": {
-      "keywords": ["bold", "italic", "underline", "strikeout", "outline", "shadow", "size", "font size", "small", "medium", "large", "huge", "tiny"],
-      "intents": ["text_style", "format_text", "size_text"]
+      "keywords": [
+        "bold",
+        "italic",
+        "underline",
+        "strikeout",
+        "outline",
+        "shadow",
+        "size",
+        "font size",
+        "small",
+        "medium",
+        "large",
+        "huge",
+        "tiny"
+      ],
+      "intents": [
+        "text_style",
+        "format_text",
+        "size_text"
+      ]
     },
     "positions.json": {
-      "keywords": ["position", "bottom", "top", "middle", "center", "left", "right", "corner", "margin", "placement"],
-      "intents": ["position_caption", "move_caption", "place_text"]
+      "keywords": [
+        "position",
+        "bottom",
+        "top",
+        "middle",
+        "center",
+        "left",
+        "right",
+        "corner",
+        "margin",
+        "placement"
+      ],
+      "intents": [
+        "position_caption",
+        "move_caption",
+        "place_text"
+      ]
     },
     "ffmpeg_settings.json": {
-      "keywords": ["encode", "codec", "h264", "h265", "hevc", "quality", "crf", "preset", "fast", "slow", "compress"],
-      "intents": ["encode_video", "set_quality", "compress_video"]
+      "keywords": [
+        "encode",
+        "codec",
+        "h264",
+        "h265",
+        "hevc",
+        "quality",
+        "crf",
+        "preset",
+        "fast",
+        "slow",
+        "compress"
+      ],
+      "intents": [
+        "encode_video",
+        "set_quality",
+        "compress_video"
+      ]
     },
     "supported_formats.json": {
-      "keywords": ["format", "mp4", "mkv", "avi", "mov", "webm", "extension", "convert", "output format"],
-      "intents": ["convert_format", "output_format", "input_format"]
+      "keywords": [
+        "format",
+        "mp4",
+        "mkv",
+        "avi",
+        "mov",
+        "webm",
+        "extension",
+        "convert",
+        "output format"
+      ],
+      "intents": [
+        "convert_format",
+        "output_format",
+        "input_format"
+      ]
     },
     "supported_languages.json": {
-      "keywords": ["language", "english", "spanish", "french", "german", "italian", "portuguese", "russian", "japanese", "korean", "chinese", "arabic", "hindi", "dutch", "polish", "turkish", "transcribe language", "detect language"],
-      "intents": ["set_language", "detect_language", "transcribe_language"]
+      "keywords": [
+        "language",
+        "english",
+        "spanish",
+        "french",
+        "german",
+        "italian",
+        "portuguese",
+        "russian",
+        "japanese",
+        "korean",
+        "chinese",
+        "arabic",
+        "hindi",
+        "dutch",
+        "polish",
+        "turkish",
+        "transcribe language",
+        "detect language"
+      ],
+      "intents": [
+        "set_language",
+        "detect_language",
+        "transcribe_language"
+      ]
     },
     "silence_cutter.json": {
-      "keywords": ["silence", "silent", "pause", "pauses", "dead air", "remove silence", "cut silence", "trim silence", "remove pauses", "cut pauses", "filler", "filler words", "um", "uh", "you know", "يعني", "اممم", "ممم", "صمت", "سكتات", "فواصل", "ازالة الصمت", "إزالة الصمت"],
-      "intents": ["remove_silence", "cut_silence", "remove_fillers"]
+      "keywords": [
+        "silence",
+        "silent",
+        "pause",
+        "pauses",
+        "dead air",
+        "remove silence",
+        "cut silence",
+        "trim silence",
+        "remove pauses",
+        "cut pauses",
+        "filler",
+        "filler words",
+        "um",
+        "uh",
+        "you know",
+        "يعني",
+        "اممم",
+        "ممم",
+        "صمت",
+        "سكتات",
+        "فواصل",
+        "ازالة الصمت",
+        "إزالة الصمت",
+        "cut from",
+        "trim from",
+        "remove from",
+        "delete from",
+        "cut between",
+        "timestamps",
+        "timestamp",
+        "timecode"
+      ],
+      "intents": [
+        "remove_silence",
+        "cut_silence",
+        "remove_fillers"
+      ]
     }
   },
   "intent_to_configs": {
-    "add_captions": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json", "supported_languages.json"],
-    "transcribe": ["supported_languages.json"],
-    "export_video": ["ffmpeg_settings.json", "supported_formats.json"],
-    "style_captions": ["fonts.json", "colors.json", "highlight_styles.json", "text_styles.json", "positions.json"],
-    "remove_silence": ["silence_cutter.json", "supported_formats.json", "supported_languages.json"]
+    "add_captions": [
+      "fonts.json",
+      "colors.json",
+      "highlight_styles.json",
+      "text_styles.json",
+      "positions.json",
+      "supported_languages.json"
+    ],
+    "transcribe": [
+      "supported_languages.json"
+    ],
+    "export_video": [
+      "ffmpeg_settings.json",
+      "supported_formats.json"
+    ],
+    "style_captions": [
+      "fonts.json",
+      "colors.json",
+      "highlight_styles.json",
+      "text_styles.json",
+      "positions.json"
+    ],
+    "remove_silence": [
+      "silence_cutter.json",
+      "supported_formats.json",
+      "supported_languages.json"
+    ]
   },
-  "default_configs": ["supported_formats.json"],
+  "default_configs": [
+    "supported_formats.json"
+  ],
   "always_load": []
 }

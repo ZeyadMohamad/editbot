@@ -170,7 +170,12 @@ class Planner:
             instructions.append(self.prompt_loader.load("caption_instructions"))
         
         # Check for silence/filler removal keywords
-        if any(kw in prompt_lower for kw in ["silence", "pause", "dead air", "filler", "um", "uh", "you know", "يعني", "اممم", "ممم", "صمت", "سكتات", "ازالة", "إزالة"]):
+        if any(kw in prompt_lower for kw in [
+            "silence", "pause", "dead air", "filler",
+            "cut from", "trim from", "remove from", "delete from", "cut between",
+            "timestamps", "timecode",
+            "صمت", "سكتات", "ازالة", "إزالة"
+        ]):
             instructions.append(self.prompt_loader.load("silence_cutter_instructions"))
         
         # Add plan schema reference

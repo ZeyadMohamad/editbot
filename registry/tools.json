@@ -134,7 +134,8 @@
         "filler_model_size": {"type": "string", "required": false, "default": "small"},
         "filler_language": {"type": "string", "required": false, "default": "auto"},
         "filler_confidence": {"type": "float", "required": false, "default": 0.5},
-        "filler_aggressive": {"type": "bool", "required": false, "default": false}
+        "filler_aggressive": {"type": "bool", "required": false, "default": false},
+        "manual_cut_segments": {"type": "array", "required": false, "description": "List of manual cut ranges {start,end} in seconds. If provided, overrides auto detection."}
       },
       "outputs": {
         "cut_list_path": {"type": "file", "description": "JSON cut list"},

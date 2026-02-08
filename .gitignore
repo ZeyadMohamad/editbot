@@ -17,7 +17,6 @@ build/
 .models/
 models/
 .pip_cache/
-workspace/
 output/
 *.mp4
 *.avi
@@ -50,3 +49,8 @@ cache/
 models/
 *.pt
 *.pth
+
+# additional directories
+workspace/
+fine-tune/
+reference videos/
