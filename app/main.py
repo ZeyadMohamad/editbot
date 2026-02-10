@@ -7,6 +7,7 @@ import os
 import json
 import re
 import shutil
+import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any
 
@@ -94,6 +95,61 @@ def validate_video(video_path: str) -> Path:
         sys.exit(1)
     
     return path
+
+# Default slowdown speed for captions - 0.80 means 20% slower, 0.85 means 15% slower, etc.
+CAPTION_AUDIO_SPEED = 0.85
+
+def slow_audio(input_wav: Path, output_wav: Path, speed: float) -> None:
+    if speed <= 0:
+        raise ValueError("speed must be > 0")
+    output_wav.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(input_wav),
+        "-filter:a",
+        f"atempo={speed}",
+        "-ar",
+        "16000",
+        "-ac",
+        "1",
+        str(output_wav),
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except FileNotFoundError as exc:
+        raise RuntimeError("ffmpeg not found. Install ffmpeg or add it to PATH.") from exc
+    except subprocess.CalledProcessError as exc:
+        raise RuntimeError(
+            f"ffmpeg failed to slow audio: {exc.stderr.decode(errors='ignore')}"
+        ) from exc
+
+
+def _scale_timestamp(value: Any, factor: float) -> float:
+    try:
+        return float(value) * factor
+    except Exception:
+        return 0.0
+
+
+def scale_transcription_timestamps(transcription: Dict[str, Any], factor: float) -> Dict[str, Any]:
+    if not transcription or factor == 1.0:
+        return transcription
+    words = transcription.get("words", [])
+    for word in words:
+        word["start"] = _scale_timestamp(word.get("start", 0.0), factor)
+        word["end"] = _scale_timestamp(word.get("end", 0.0), factor)
+
+    segments = transcription.get("segments", [])
+    for segment in segments:
+        segment["start"] = _scale_timestamp(segment.get("start", 0.0), factor)
+        segment["end"] = _scale_timestamp(segment.get("end", 0.0), factor)
+        if "words" in segment:
+            for word in segment["words"]:
+                word["start"] = _scale_timestamp(word.get("start", 0.0), factor)
+                word["end"] = _scale_timestamp(word.get("end", 0.0), factor)
+    return transcription
 
 
 def interactive_mode():
@@ -447,13 +503,24 @@ def run_caption_pipeline(
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎤 Transcribing speech...{Style.RESET_ALL}")
         print(f"{Fore.GRAY}  (First run downloads ~150MB model){Style.RESET_ALL}")
         
-        transcription = whisper_tool.transcribe_and_align(str(audio_path))
+        asr_audio_path = audio_path
+        speed = CAPTION_AUDIO_SPEED
+        if speed and abs(speed - 1.0) > 1e-3:
+            slowed_audio_path = workspace / f"{video_name}_audio_slow{int(speed * 100)}.wav"
+            print(f"{Fore.GRAY}  Slowing audio to {speed}x for ASR...{Style.RESET_ALL}")
+            slow_audio(Path(audio_path), slowed_audio_path, speed)
+            asr_audio_path = slowed_audio_path
+
+        transcription = whisper_tool.transcribe_and_align(str(asr_audio_path))
         
         if not transcription.get("success"):
             results["errors"].append(f"Transcription failed: {transcription.get('error')}")
             print(f"{Fore.RED}✗ Failed to transcribe{Style.RESET_ALL}")
             return results
         
+        if speed and abs(speed - 1.0) > 1e-3:
+            transcription = scale_transcription_timestamps(transcription, speed)
+
         words = transcription.get("words", [])
         language = transcription.get("language", "unknown")
         print(f"{Fore.GREEN}✓ Transcribed {len(words)} words (Language: {language}){Style.RESET_ALL}")

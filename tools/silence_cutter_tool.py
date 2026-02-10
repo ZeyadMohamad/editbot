@@ -104,8 +104,14 @@ CUT_RANGE_REGEX = re.compile(
 def should_apply_silence_cut(prompt: str) -> bool:
     """Heuristic: detect if user asked for silence/filler removal."""
     prompt_lower = (prompt or "").lower()
-    if any(k in prompt_lower for k in SILENCE_KEYWORDS):
-        return True
+    for keyword in SILENCE_KEYWORDS:
+        if " " in keyword:
+            if keyword in prompt_lower:
+                return True
+            continue
+        pattern = rf"(?<!\w){re.escape(keyword)}(?!\w)"
+        if re.search(pattern, prompt_lower):
+            return True
     return bool(parse_manual_cut_segments_from_prompt(prompt))
 
 
