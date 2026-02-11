@@ -93,10 +93,11 @@ SILENCE_KEYWORDS = [
 
 # Manual cut parsing
 MANUAL_CUT_VERBS = ["cut", "trim", "remove", "delete", "snip", "excise"]
-TIME_TOKEN_PATTERN = r"(?:\d+(?::\d+){1,2}(?:\.\d+)?|\d+(?:\.\d+)?)"
+TIME_TOKEN_PATTERN = r"(?:\d+(?::\d+){1,2}(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s*(?:ms|s|sec|secs|seconds))?"
 CUT_RANGE_REGEX = re.compile(
-    rf"(?:{'|'.join(MANUAL_CUT_VERBS)})\s*(?:out|from)?\s*"
-    rf"({TIME_TOKEN_PATTERN})\s*(?:to|until|through|-)\s*({TIME_TOKEN_PATTERN})",
+    rf"(?:{'|'.join(MANUAL_CUT_VERBS)})\s*"
+    rf"(?:out\s+)?(?:at\s+)?(?:duration\s+)?(?:from\s+|between\s+)?"
+    rf"({TIME_TOKEN_PATTERN})\s*(?:to|until|through|-|and)\s*({TIME_TOKEN_PATTERN})",
     re.IGNORECASE
 )
 

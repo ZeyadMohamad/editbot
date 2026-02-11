@@ -278,6 +278,33 @@ def _find_time_range(text: str) -> Tuple[Optional[float], Optional[float], Optio
     return None, None, None
 
 
+def _scrub_source_range(text: str) -> str:
+    if not text:
+        return text
+    match = SOURCE_RANGE_REGEX.search(text) or SOURCE_RANGE_POST_REGEX.search(text)
+    if not match:
+        return text
+    start_idx, end_idx = match.span()
+    return text[:start_idx] + " " + text[end_idx:]
+
+
+def _split_prompt_clauses(text: str) -> List[str]:
+    if not text:
+        return []
+    separators = (
+        r"(?:\.\s+|;\s+|\n+"
+        r"|,?\s+and\s+then\s+"
+        r"|,?\s+then\s+"
+        r"|,?\s+next\s+"
+        r"|,?\s+after\s+that\s+"
+        r"|,?\s+afterwards\s+"
+        r"|,?\s+also\s+"
+        r"|,?\s+and\s+(?:add|insert|overlay|splice|cut|trim|remove|delete|snip|excise)\b)"
+    )
+    parts = re.split(separators, text, flags=re.IGNORECASE)
+    return [p.strip() for p in parts if p and p.strip()]
+
+
 def _infer_position_from_text(text: str) -> Optional[str]:
     if not text:
         return None
@@ -346,9 +373,7 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
 
     # Extract source range (inside stock clip) first to avoid confusing with main range
     source_start = source_end = None
-    source_match = SOURCE_RANGE_REGEX.search(prompt_text)
-    if not source_match:
-        source_match = SOURCE_RANGE_POST_REGEX.search(prompt_text)
+    source_match = SOURCE_RANGE_REGEX.search(prompt_text) or SOURCE_RANGE_POST_REGEX.search(prompt_text)
     scrubbed_prompt = prompt_text
     if source_match:
         source_start = _parse_timecode_to_seconds(source_match.group(1))
@@ -358,9 +383,8 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
         start_idx, end_idx = source_match.span()
         scrubbed_prompt = prompt_text[:start_idx] + " " + prompt_text[end_idx:]
 
-    start_time, end_time, _span = _find_time_range(scrubbed_prompt)
-    if start_time is None:
-        errors.append("No stock placement time range found (e.g., 'from 26s to 29.5s').")
+    clauses = _split_prompt_clauses(prompt_text)
+    global_start, global_end, _span = _find_time_range(scrubbed_prompt)
 
     mode = "overlay"
     if any(k in prompt_lower for k in ["insert", "cutaway", "replace", "splice"]):
@@ -375,7 +399,30 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
         size = size_match.group(1).strip().lower()
 
     items: List[Dict[str, Any]] = []
+    missing_time_range = False
     for path in paths:
+        start_time = None
+        end_time = None
+        clause = None
+        path_lower = path.lower()
+        for candidate in clauses:
+            if path_lower in candidate.lower():
+                clause = candidate
+                break
+        if clause is None:
+            for candidate in clauses:
+                candidate_lower = candidate.lower()
+                if any(k in candidate_lower for k in STOCK_KEYWORDS):
+                    clause = candidate
+                    break
+        if clause:
+            clause_scrubbed = _scrub_source_range(clause)
+            start_time, end_time, _ = _find_time_range(clause_scrubbed)
+        if start_time is None:
+            start_time, end_time = global_start, global_end
+        if start_time is None:
+            missing_time_range = True
+
         item: Dict[str, Any] = {
             "path": path,
             "mode": mode
@@ -393,6 +440,9 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
         if size:
             item["size"] = size
         items.append(item)
+
+    if missing_time_range:
+        errors.append("No stock placement time range found (e.g., 'from 26s to 29.5s').")
 
     if errors:
         return [], errors
