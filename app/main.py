@@ -299,6 +299,71 @@ def should_apply_captions(prompt: str) -> bool:
     ])
 
 
+def _first_keyword_index(text: str, keywords: list) -> Optional[int]:
+    if not text or not keywords:
+        return None
+    lower = text.lower()
+    indices = []
+    for kw in keywords:
+        if not kw:
+            continue
+        kw_lower = str(kw).lower()
+        if " " in kw_lower:
+            idx = lower.find(kw_lower)
+            if idx != -1:
+                indices.append(idx)
+        else:
+            match = re.search(rf"(?<!\w){re.escape(kw_lower)}(?!\w)", lower)
+            if match:
+                indices.append(match.start())
+    return min(indices) if indices else None
+
+
+def _determine_tool_order(
+    prompt: str,
+    has_stock: bool,
+    has_cut: bool,
+    stock_keywords: list,
+    cut_keywords: list
+) -> list:
+    ops = []
+    if has_stock:
+        ops.append("stock")
+    if has_cut:
+        ops.append("cut")
+    if not ops:
+        return []
+
+    prompt_text = prompt or ""
+    indices = {}
+    if has_stock:
+        indices["stock"] = _first_keyword_index(prompt_text, stock_keywords)
+    if has_cut:
+        indices["cut"] = _first_keyword_index(prompt_text, cut_keywords)
+
+    default_order = {"stock": 0, "cut": 1}
+
+    def sort_key(op: str):
+        idx = indices.get(op)
+        if idx is None:
+            return (1, default_order.get(op, 99))
+        return (0, idx)
+
+    return sorted(ops, key=sort_key)
+
+
+def _count_steps(tool_order: list, use_captions: bool) -> int:
+    steps = 0
+    for op in tool_order:
+        if op == "stock":
+            steps += 1
+        elif op == "cut":
+            steps += 2  # extract audio + cut
+    if use_captions:
+        steps += 4  # extract audio + transcribe + captions + render
+    return max(steps, 1)
+
+
 def load_stock_items(stock_arg: Optional[str]) -> Optional[list]:
     """Load stock items from JSON string or file path."""
     if not stock_arg:
@@ -344,9 +409,15 @@ def run_caption_pipeline(
         SilenceCutterTool,
         should_apply_silence_cut,
         parse_silence_settings_from_prompt,
-        parse_manual_cut_segments_from_prompt
+        parse_manual_cut_segments_from_prompt,
+        SILENCE_KEYWORDS,
+        MANUAL_CUT_VERBS
     )
-    from tools.stock_footage_tool import StockFootageTool, parse_stock_items_from_prompt
+    from tools.stock_footage_tool import (
+        StockFootageTool,
+        parse_stock_items_from_prompt,
+        STOCK_KEYWORDS
+    )
     from core.config_loader import ConfigLoader
     
     workspace = Path(output_dir) if output_dir else PROJECT_ROOT / "workspace"
@@ -403,112 +474,126 @@ def run_caption_pipeline(
             stock_items = parsed_items
 
     try:
-        step_total = 0
-        if stock_items:
-            step_total += 1
-        if use_silence_cut or use_captions:
-            step_total += 1  # extract audio
-        if use_silence_cut:
-            step_total += 1
-        if use_captions:
-            step_total += 3  # transcribe, captions, render
+        cut_keywords = list(dict.fromkeys(list(MANUAL_CUT_VERBS) + list(SILENCE_KEYWORDS)))
+        tool_order = _determine_tool_order(
+            prompt=prompt,
+            has_stock=bool(stock_items),
+            has_cut=use_silence_cut,
+            stock_keywords=STOCK_KEYWORDS,
+            cut_keywords=cut_keywords
+        )
+        step_total = _count_steps(tool_order, use_captions)
         step_index = 1
-        # Optional: Apply stock footage before audio extraction
-        if stock_items:
-            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] ???? Applying stock footage...{Style.RESET_ALL}")
-            stock_tool = StockFootageTool()
-            stock_output = workspace / f"{video_name}_stock.mp4"
-            stock_result = stock_tool.apply_stock_footage(
-                video_path=str(video_path),
-                stock_items=stock_items,
-                output_path=str(stock_output)
-            )
-            if not stock_result.get("success"):
-                results["errors"].append(f"Stock footage failed: {stock_result.get('error')}")
-                print(f"{Fore.RED}Failed to apply stock footage{Style.RESET_ALL}")
-                return results
-            video_path = Path(stock_result.get("output_path", stock_output))
-            results["outputs"]["stock_video"] = str(video_path)
+
+        def print_step(label: str) -> None:
+            nonlocal step_index
+            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] {label}{Style.RESET_ALL}")
             step_index += 1
 
+        current_video = Path(video_path)
         audio_path = None
-        if use_silence_cut or use_captions:
-            # Step 1: Extract audio
-            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] Extracting audio...{Style.RESET_ALL}")
-            audio_path = workspace / f"{video_name}_audio.wav"
-            
-            audio_result = ffmpeg.extract_audio(str(video_path), str(audio_path))
-            
-            if not audio_result.get("success"):
-                results["errors"].append(f"Audio extraction failed: {audio_result.get('error')}")
-                print(f"{Fore.RED}Failed to extract audio{Style.RESET_ALL}")
-                return results
-            
-            print(f"{Fore.GREEN}Audio extracted: {audio_path.name}{Style.RESET_ALL}")
-            results["outputs"]["audio"] = str(audio_path)
-            step_index += 1
 
-        # Step 2: Optional silence cutting
-        if use_silence_cut:
-            print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] ✂️  Cutting silences...{Style.RESET_ALL}")
-            
-            silence_tool = SilenceCutterTool()
-            cut_video_path = workspace / f"{video_name}_cut.mp4"
-            cut_audio_path = workspace / f"{video_name}_cut.wav"
-            cut_list_path = workspace / f"{video_name}_cut_list.json"
-            
-            cut_result = silence_tool.cut_silence(
-                audio_path=str(audio_path),
-                video_path=str(video_path),
-                output_path=str(cut_video_path),
-                output_audio_path=str(cut_audio_path),
-                cut_list_path=str(cut_list_path),
-                manual_cut_segments=manual_cut_segments if manual_cut_segments else None,
-                threshold_db=silence_settings.get("threshold_db"),
-                min_silence_duration=silence_settings.get("min_silence_duration"),
-                padding=silence_settings.get("padding"),
-                chunk_ms=silence_settings.get("chunk_ms"),
-                filler_detection=silence_settings.get("filler_detection"),
-                filler_model_size=silence_settings.get("filler_model_size"),
-                filler_language=silence_settings.get("filler_language"),
-                filler_confidence=silence_settings.get("filler_confidence"),
-                filler_aggressive=silence_settings.get("filler_aggressive"),
-                filler_engine=silence_settings.get("filler_engine"),
-                filler_words=silence_config.get("filler_words"),
-                filler_phrases=silence_config.get("filler_phrases")
-            )
-            
-            if not cut_result.get("success"):
-                results["errors"].append(f"Silence cut failed: {cut_result.get('error')}")
-                print(f"{Fore.RED}✗ Failed to cut silences{Style.RESET_ALL}")
-                return results
-            
-            results["outputs"]["cut_list"] = cut_result.get("cut_list_path")
-            if cut_result.get("output_video_path"):
-                results["outputs"]["cut_video"] = cut_result.get("output_video_path")
-                video_path = Path(cut_result["output_video_path"])
-            if cut_result.get("output_audio_path"):
-                results["outputs"]["cut_audio"] = cut_result.get("output_audio_path")
-                audio_path = Path(cut_result["output_audio_path"])
-            
-            print(f"{Fore.GREEN}✓ Silences removed{Style.RESET_ALL}")
-            step_index += 1
-        
+        for op in tool_order:
+            if op == "stock":
+                print_step("Applying stock footage...")
+                stock_tool = StockFootageTool()
+                stock_output = workspace / f"{video_name}_stock.mp4"
+                stock_result = stock_tool.apply_stock_footage(
+                    video_path=str(current_video),
+                    stock_items=stock_items,
+                    output_path=str(stock_output)
+                )
+                if not stock_result.get("success"):
+                    results["errors"].append(f"Stock footage failed: {stock_result.get('error')}")
+                    print(f"{Fore.RED}Failed to apply stock footage{Style.RESET_ALL}")
+                    return results
+                current_video = Path(stock_result.get("output_path", stock_output))
+                results["outputs"]["stock_video"] = str(current_video)
+                audio_path = None
+                continue
+
+            if op == "cut":
+                print_step("Extracting audio for cutting...")
+                audio_path = workspace / f"{video_name}_audio_cut_src.wav"
+                audio_result = ffmpeg.extract_audio(str(current_video), str(audio_path))
+                if not audio_result.get("success"):
+                    results["errors"].append(f"Audio extraction failed: {audio_result.get('error')}")
+                    print(f"{Fore.RED}Failed to extract audio{Style.RESET_ALL}")
+                    return results
+                print(f"{Fore.GREEN}Audio extracted: {audio_path.name}{Style.RESET_ALL}")
+                results["outputs"]["audio"] = str(audio_path)
+
+                print_step("Cutting silences...")
+                silence_tool = SilenceCutterTool()
+                cut_video_path = workspace / f"{video_name}_cut.mp4"
+                cut_audio_path = workspace / f"{video_name}_cut.wav"
+                cut_list_path = workspace / f"{video_name}_cut_list.json"
+
+                cut_result = silence_tool.cut_silence(
+                    audio_path=str(audio_path),
+                    video_path=str(current_video),
+                    output_path=str(cut_video_path),
+                    output_audio_path=str(cut_audio_path),
+                    cut_list_path=str(cut_list_path),
+                    manual_cut_segments=manual_cut_segments if manual_cut_segments else None,
+                    threshold_db=silence_settings.get("threshold_db"),
+                    min_silence_duration=silence_settings.get("min_silence_duration"),
+                    padding=silence_settings.get("padding"),
+                    chunk_ms=silence_settings.get("chunk_ms"),
+                    filler_detection=silence_settings.get("filler_detection"),
+                    filler_model_size=silence_settings.get("filler_model_size"),
+                    filler_language=silence_settings.get("filler_language"),
+                    filler_confidence=silence_settings.get("filler_confidence"),
+                    filler_aggressive=silence_settings.get("filler_aggressive"),
+                    filler_engine=silence_settings.get("filler_engine"),
+                    filler_words=silence_config.get("filler_words"),
+                    filler_phrases=silence_config.get("filler_phrases")
+                )
+
+                if not cut_result.get("success"):
+                    results["errors"].append(f"Silence cut failed: {cut_result.get('error')}")
+                    print(f"{Fore.RED}Failed to cut silences{Style.RESET_ALL}")
+                    return results
+
+                results["outputs"]["cut_list"] = cut_result.get("cut_list_path")
+                if cut_result.get("output_video_path"):
+                    results["outputs"]["cut_video"] = cut_result.get("output_video_path")
+                    current_video = Path(cut_result["output_video_path"])
+                if cut_result.get("output_audio_path"):
+                    results["outputs"]["cut_audio"] = cut_result.get("output_audio_path")
+                    audio_path = Path(cut_result["output_audio_path"])
+
+                print(f"{Fore.GREEN}Silences removed{Style.RESET_ALL}")
+
+        video_path = current_video
+
         if not use_captions:
             results["outputs"]["video"] = str(video_path)
             results["success"] = True
             return results
 
+        print_step("Extracting audio for captions...")
+        caption_audio_path = workspace / f"{video_name}_audio_caption.wav"
+        audio_result = ffmpeg.extract_audio(str(video_path), str(caption_audio_path))
+        if not audio_result.get("success"):
+            results["errors"].append(f"Audio extraction failed: {audio_result.get('error')}")
+            print(f"{Fore.RED}Failed to extract audio{Style.RESET_ALL}")
+            return results
+        print(f"{Fore.GREEN}Audio extracted: {caption_audio_path.name}{Style.RESET_ALL}")
+        results["outputs"]["audio"] = str(caption_audio_path)
+
         # Next step: Transcribe
         print(f"\n{Fore.YELLOW}[{step_index}/{step_total}] 🎤 Transcribing speech...{Style.RESET_ALL}")
         print(f"{Fore.GRAY}  (First run downloads ~150MB model){Style.RESET_ALL}")
         
-        asr_audio_path = audio_path
+        asr_audio_path = caption_audio_path
         speed = CAPTION_AUDIO_SPEED
         if speed and abs(speed - 1.0) > 1e-3:
-            slowed_audio_path = workspace / f"{video_name}_audio_slow{int(speed * 100)}.wav"
+            slowed_audio_path = caption_audio_path.with_name(
+                f"{caption_audio_path.stem}_slow{int(speed * 100)}.wav"
+            )
             print(f"{Fore.GRAY}  Slowing audio to {speed}x for ASR...{Style.RESET_ALL}")
-            slow_audio(Path(audio_path), slowed_audio_path, speed)
+            slow_audio(Path(caption_audio_path), slowed_audio_path, speed)
             asr_audio_path = slowed_audio_path
 
         transcription = whisper_tool.transcribe_and_align(str(asr_audio_path))

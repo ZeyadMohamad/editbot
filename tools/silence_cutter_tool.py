@@ -96,7 +96,7 @@ MANUAL_CUT_VERBS = ["cut", "trim", "remove", "delete", "snip", "excise"]
 TIME_TOKEN_PATTERN = r"(?:\d+(?::\d+){1,2}(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s*(?:ms|s|sec|secs|seconds))?"
 CUT_RANGE_REGEX = re.compile(
     rf"(?:{'|'.join(MANUAL_CUT_VERBS)})\s*"
-    rf"(?:out\s+)?(?:at\s+)?(?:duration\s+)?(?:from\s+|between\s+)?"
+    rf"(?:out\s+)?(?:at\s+)?(?:duration\s+)?(?:from\s+|between\s+)?(?:duration\s+)?"
     rf"({TIME_TOKEN_PATTERN})\s*(?:to|until|through|-|and)\s*({TIME_TOKEN_PATTERN})",
     re.IGNORECASE
 )
