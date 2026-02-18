@@ -168,6 +168,16 @@
           "type": "object",
           "required": false,
           "description": "Caption style configuration"
+        },
+        "highlight_options": {
+          "type": "object",
+          "required": false,
+          "description": "Optional layered highlight configuration (enabled, highlight_type=word_by_word|progressive, colors, bold, box)"
+        },
+        "detected_language": {
+          "type": "string",
+          "required": false,
+          "description": "Detected language code, optional"
         }
       },
       "outputs": {

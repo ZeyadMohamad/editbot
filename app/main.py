@@ -290,6 +290,99 @@ def parse_style_from_prompt(prompt: str, config_loader) -> CaptionStyle:
     return style
 
 
+def _get_color_hex_map(config_loader) -> Dict[str, str]:
+    """Load color name -> ASS BGR hex from config."""
+    colors_config = config_loader.get_config("colors") or {}
+    colors_raw = colors_config.get("colors", {})
+    colors: Dict[str, str] = {}
+    for name, value in colors_raw.items():
+        key = str(name).lower()
+        if isinstance(value, dict):
+            colors[key] = str(value.get("hex", "FFFFFF")).upper()
+        else:
+            colors[key] = str(value).upper()
+
+    # Safe defaults
+    colors.setdefault("yellow", "00FFFF")
+    colors.setdefault("white", "FFFFFF")
+    colors.setdefault("black", "000000")
+    return colors
+
+
+def parse_highlight_options_from_prompt(prompt: str, config_loader) -> Dict[str, Any]:
+    """
+    Parse caption highlight behavior from prompt.
+    Returns options consumed by CaptionsTool.generate_ass_file(..., highlight_options=...).
+    """
+    prompt_lower = (prompt or "").lower()
+    colors = _get_color_hex_map(config_loader)
+
+    options: Dict[str, Any] = {
+        "enabled": False,
+        "highlight_type": "word_by_word",
+        "highlight_color": colors.get("yellow", "00FFFF"),
+        "progressive_color": colors.get("yellow", "00FFFF"),
+        "current_word_bold": False,
+        "current_word_box": False,
+        "box_color": colors.get("black", "000000"),
+        "box_alpha": "66",
+    }
+
+    # Explicit "off"
+    if any(x in prompt_lower for x in ["no highlight", "without highlight", "plain subtitle", "plain captions"]):
+        return options
+
+    highlight_triggers = [
+        "highlight",
+        "karaoke",
+        "word by word",
+        "word-by-word",
+        "current word",
+        "progressive",
+        "background box",
+        "word box",
+    ]
+
+    if not any(x in prompt_lower for x in highlight_triggers):
+        return options
+
+    options["enabled"] = True
+
+    if any(x in prompt_lower for x in ["progressive", "up to current", "until current", "whole sentence"]):
+        options["highlight_type"] = "progressive"
+    elif any(x in prompt_lower for x in ["word by word", "word-by-word", "one word at a time"]):
+        options["highlight_type"] = "word_by_word"
+
+    if any(x in prompt_lower for x in ["background box", "word box", "box behind", "highlight box"]):
+        options["current_word_box"] = True
+
+    if re.search(r"(current|spoken|active)\s+word.{0,20}\bbold\b|\bbold\b.{0,20}(current|spoken|active)\s+word", prompt_lower):
+        options["current_word_bold"] = True
+
+    for color_name, color_hex in colors.items():
+        # highlight color
+        if re.search(rf"(highlight|current word|spoken word).{{0,20}}\b{re.escape(color_name)}\b", prompt_lower) or \
+           re.search(rf"\b{re.escape(color_name)}\b.{{0,20}}(highlight|current word|spoken word)", prompt_lower):
+            options["highlight_color"] = color_hex
+
+        # progressive color
+        if re.search(rf"(progressive|sentence|past words).{{0,20}}\b{re.escape(color_name)}\b", prompt_lower) or \
+           re.search(rf"\b{re.escape(color_name)}\b.{{0,20}}(progressive|sentence|past words)", prompt_lower):
+            options["progressive_color"] = color_hex
+            options["highlight_type"] = "progressive"
+
+        # box color
+        if re.search(rf"(box|background).{{0,20}}\b{re.escape(color_name)}\b", prompt_lower) or \
+           re.search(rf"\b{re.escape(color_name)}\b.{{0,20}}(box|background)", prompt_lower):
+            options["box_color"] = color_hex
+            options["current_word_box"] = True
+
+    if options["highlight_type"] != "progressive":
+        options["progressive_color"] = options["highlight_color"]
+
+    return options
+
+
 def should_apply_captions(prompt: str) -> bool:
     """Heuristic: detect if user asked for captions/subtitles."""
     prompt_lower = (prompt or "").lower()
@@ -436,12 +529,14 @@ def run_caption_pipeline(
     whisper_tool = None
     captions = None
     style_config = None
+    highlight_options = None
 
     if use_captions:
         # Use int8_float16 quantization for medium model - fits well in 4GB VRAM on GPU
         whisper_tool = WhisperXTool(model_size="large-v3", device="cuda", compute_type="int8_float16")
         captions = CaptionsTool()
         style_config = parse_style_from_prompt(prompt, config_loader)
+        highlight_options = parse_highlight_options_from_prompt(prompt, config_loader)
     
     silence_config = config_loader.get_config("silence_cutter") or {}
     silence_defaults = silence_config.get("defaults", {})
@@ -454,6 +549,11 @@ def run_caption_pipeline(
         print(f"  Font: {style_config.font} ({style_config.font_size}px)")
         print(f"  Position: {style_config.position}")
         print(f"  Text color: {style_config.primary_color}")
+        if highlight_options and highlight_options.get("enabled"):
+            print(f"  Highlight: {highlight_options.get('highlight_type')}")
+            print(f"  Highlight color: {highlight_options.get('highlight_color')}")
+            print(f"  Current word bold: {highlight_options.get('current_word_bold')}")
+            print(f"  Word box: {highlight_options.get('current_word_box')}")
     
     results = {
         "success": False,
@@ -630,7 +730,9 @@ def run_caption_pipeline(
             output_path=str(ass_path),
             style=style_config,
             video_width=width,
-            video_height=height
+            video_height=height,
+            highlight_options=highlight_options,
+            detected_language=language
         )
         
         if not caption_result.get("success"):

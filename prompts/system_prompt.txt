@@ -63,6 +63,11 @@ For "Add captions to my video":
 4. generate_captions: word_timestamps → captions.ass
 5. render_subtitles: video + captions.ass → output.mp4
 
+For highlight requests in `generate_captions`:
+- use `highlight_options.highlight_type` as `word_by_word` or `progressive`
+- captions are layered: Layer 0 base text, Layer 1 timed highlight overlay
+- both layers must start from the right side of the video
+
 ## EXAMPLE PLAN STRUCTURE FOR SILENCE CUTTING
 For "Remove silences and filler words":
 1. extract_audio: video → audio.wav

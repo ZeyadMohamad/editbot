@@ -15,10 +15,28 @@ Look for these in the user's request:
 - **Size**: tiny/small/medium/large/extra_large/huge OR pixel value
 - **Primary Color**: Text color when not highlighted
 - **Highlight Color**: Text color when word is being spoken
-- **Highlight Style**: color_change/karaoke_fill/scale_pop/glow/bounce
+- **Highlight Type**: `word_by_word` or `progressive`
+- **Current Word Bold**: whether active word should become bold
+- **Current Word Box**: background box behind active word
 - **Position**: bottom/top/middle/center + left/right
 - **Outline**: Width and color of text border
 - **Shadow**: Shadow depth
+
+### HIGHLIGHT INPUT OBJECT (generate_captions)
+Use `highlight_options` in job inputs:
+- `enabled`: true/false
+- `highlight_type`: `word_by_word` or `progressive`
+- `highlight_color`: ASS BGR hex (e.g., `00FFFF`)
+- `progressive_color`: ASS BGR hex
+- `current_word_bold`: true/false
+- `current_word_box`: true/false
+- `box_color`: ASS BGR hex
+- `box_alpha`: two-digit ASS alpha
+
+### LAYERING RULE
+- Layer 0: full caption sentence (base text).
+- Layer 1: timed highlight overlay.
+- Both layers should start from the right side of the video.
 
 ### DEFAULT VALUES (when not specified)
 - Font: Montserrat ExtraBold

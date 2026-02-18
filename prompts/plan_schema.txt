@@ -139,9 +139,17 @@ Use `stock_items` to describe overlays or insertions:
             "font": "Montserrat ExtraBold",
             "font_size": 48,
             "primary_color": "FFFFFF",
-            "highlight_color": "00FFFF",
-            "highlight_type": "color_change",
             "position": "bottom_center"
+          },
+          "highlight_options": {
+            "enabled": true,
+            "highlight_type": "progressive",
+            "highlight_color": "00FFFF",
+            "progressive_color": "00FFFF",
+            "current_word_bold": true,
+            "current_word_box": true,
+            "box_color": "000000",
+            "box_alpha": "66"
           }
         },
         "outputs": {
