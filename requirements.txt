@@ -1,9 +1,14 @@
 # Core dependencies
 pydantic==2.5.0
 python-dotenv==1.0.0
+fastapi==0.110.0
+uvicorn==0.29.0
+python-multipart==0.0.9
 
 # LLM integration
 ollama==0.1.6
+chromadb>=0.5.0
+onnxruntime>=1.15.0        # Semantic embeddings for ChromaDB (all-MiniLM-L6-v2)
 
 # Video/Audio processing
 ffmpeg-python==0.2.0

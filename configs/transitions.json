@@ -1,0 +1,299 @@
+{
+  "description": "Adobe Premiere Pro style transitions mapped to FFmpeg xfade transition codes",
+  "version": "1.0.0",
+  "default_duration": 1.0,
+  "transitions": [
+    {
+      "name": "Cross Dissolve",
+      "code": "fade",
+      "description": "Standard opacity crossfade between clips - most common transition"
+    },
+    {
+      "name": "Dip to Black",
+      "code": "fadeblack",
+      "description": "Fade through black (clip 1 -> black -> clip 2)"
+    },
+    {
+      "name": "Dip to White",
+      "code": "fadewhite",
+      "description": "Fade through white (clip 1 -> white -> clip 2)"
+    },
+    {
+      "name": "Film Dissolve",
+      "code": "dissolve",
+      "description": "Alternative dissolve with slightly different blending curve"
+    },
+    {
+      "name": "Fast Fade",
+      "code": "fadefast",
+      "description": "Quick 0.5 second dissolve for rapid pacing",
+      "default_duration": 0.5
+    },
+    {
+      "name": "Slow Fade",
+      "code": "fadeslow",
+      "description": "Extended slow dissolve for emotional/dramatic moments",
+      "default_duration": 2.0
+    },
+    {
+      "name": "Fade to Gray",
+      "code": "fadegrays",
+      "description": "Desaturate to grayscale during transition"
+    },
+    {
+      "name": "Wipe Left",
+      "code": "wiperight",
+      "description": "Clip 2 wipes in from right to left (revealing left)"
+    },
+    {
+      "name": "Wipe Right",
+      "code": "wipeleft",
+      "description": "Clip 2 wipes in from left to right (revealing right)"
+    },
+    {
+      "name": "Wipe Up",
+      "code": "wipedown",
+      "description": "Clip 2 wipes in from bottom to top"
+    },
+    {
+      "name": "Wipe Down",
+      "code": "wipeup",
+      "description": "Clip 2 wipes in from top to bottom"
+    },
+    {
+      "name": "Wipe Top-Left",
+      "code": "wipetl",
+      "description": "Diagonal wipe from bottom-right to top-left"
+    },
+    {
+      "name": "Wipe Top-Right",
+      "code": "wipetr",
+      "description": "Diagonal wipe from bottom-left to top-right"
+    },
+    {
+      "name": "Wipe Bottom-Left",
+      "code": "wipebl",
+      "description": "Diagonal wipe from top-right to bottom-left"
+    },
+    {
+      "name": "Wipe Bottom-Right",
+      "code": "wipebr",
+      "description": "Diagonal wipe from top-left to bottom-right"
+    },
+    {
+      "name": "Diagonal Wipe TL-BR",
+      "code": "diagtl",
+      "description": "Corner-to-corner wipe: top-left to bottom-right"
+    },
+    {
+      "name": "Diagonal Wipe TR-BL",
+      "code": "diagtr",
+      "description": "Corner-to-corner wipe: top-right to bottom-left"
+    },
+    {
+      "name": "Diagonal Wipe BL-TR",
+      "code": "diagbl",
+      "description": "Corner-to-corner wipe: bottom-left to top-right"
+    },
+    {
+      "name": "Diagonal Wipe BR-TL",
+      "code": "diagbr",
+      "description": "Corner-to-corner wipe: bottom-right to top-left"
+    },
+    {
+      "name": "Push Left",
+      "code": "slideleft",
+      "description": "Clip 1 slides out left while clip 2 enters from right"
+    },
+    {
+      "name": "Push Right",
+      "code": "slideright",
+      "description": "Clip 1 slides out right while clip 2 enters from left"
+    },
+    {
+      "name": "Push Up",
+      "code": "slideup",
+      "description": "Clip 1 slides up while clip 2 enters from bottom"
+    },
+    {
+      "name": "Push Down",
+      "code": "slidedown",
+      "description": "Clip 1 slides down while clip 2 enters from top"
+    },
+    {
+      "name": "Cover Left",
+      "code": "coverleft",
+      "description": "Clip 2 slides over clip 1 from right to left"
+    },
+    {
+      "name": "Cover Right",
+      "code": "coverright",
+      "description": "Clip 2 slides over clip 1 from left to right"
+    },
+    {
+      "name": "Cover Up",
+      "code": "coverup",
+      "description": "Clip 2 slides over clip 1 from bottom to top"
+    },
+    {
+      "name": "Cover Down",
+      "code": "coverdown",
+      "description": "Clip 2 slides over clip 1 from top to bottom"
+    },
+    {
+      "name": "Reveal Left",
+      "code": "revealleft",
+      "description": "Clip 1 moves left revealing clip 2 underneath"
+    },
+    {
+      "name": "Reveal Right",
+      "code": "revealright",
+      "description": "Clip 1 moves right revealing clip 2 underneath"
+    },
+    {
+      "name": "Reveal Up",
+      "code": "revealup",
+      "description": "Clip 1 moves up revealing clip 2 underneath"
+    },
+    {
+      "name": "Reveal Down",
+      "code": "revealdown",
+      "description": "Clip 1 moves down revealing clip 2 underneath"
+    },
+    {
+      "name": "Iris Open",
+      "code": "circleopen",
+      "description": "Expanding circular iris reveals clip 2 from center"
+    },
+    {
+      "name": "Iris Close",
+      "code": "circleclose",
+      "description": "Shrinking circular iris to clip 2 at center"
+    },
+    {
+      "name": "Iris Round",
+      "code": "circlecrop",
+      "description": "Circular mask transition (hard edge iris)"
+    },
+    {
+      "name": "Radial Wipe",
+      "code": "radial",
+      "description": "Clockwise radial wipe from center outward"
+    },
+    {
+      "name": "Smooth Left",
+      "code": "smoothleft",
+      "description": "Soft-edged gradient wipe from right to left"
+    },
+    {
+      "name": "Smooth Right",
+      "code": "smoothright",
+      "description": "Soft-edged gradient wipe from left to right"
+    },
+    {
+      "name": "Smooth Up",
+      "code": "smoothup",
+      "description": "Soft-edged gradient wipe from bottom to top"
+    },
+    {
+      "name": "Smooth Down",
+      "code": "smoothdown",
+      "description": "Soft-edged gradient wipe from top to bottom"
+    },
+    {
+      "name": "Horizontal Slice Left",
+      "code": "hlslice",
+      "description": "Horizontal split with left side moving"
+    },
+    {
+      "name": "Horizontal Slice Right",
+      "code": "hrslice",
+      "description": "Horizontal split with right side moving"
+    },
+    {
+      "name": "Vertical Slice Up",
+      "code": "vuslice",
+      "description": "Vertical split with upper portion moving"
+    },
+    {
+      "name": "Vertical Slice Down",
+      "code": "vdslice",
+      "description": "Vertical split with lower portion moving"
+    },
+    {
+      "name": "Horizontal Blur",
+      "code": "hblur",
+      "description": "Directional motion blur during transition"
+    },
+    {
+      "name": "Pixelate",
+      "code": "pixelize",
+      "description": "Blocky pixelation dissolve effect"
+    },
+    {
+      "name": "Zoom In",
+      "code": "zoomin",
+      "description": "Clip 2 zooms in from center to full frame"
+    },
+    {
+      "name": "Squeeze Horizontal",
+      "code": "squeezeh",
+      "description": "Horizontal compression then expansion"
+    },
+    {
+      "name": "Squeeze Vertical",
+      "code": "squeezev",
+      "description": "Vertical compression then expansion"
+    },
+    {
+      "name": "Split Open Vertical",
+      "code": "vertopen",
+      "description": "Vertical split opening from center outward"
+    },
+    {
+      "name": "Split Close Vertical",
+      "code": "vertclose",
+      "description": "Vertical split closing to center"
+    },
+    {
+      "name": "Split Open Horizontal",
+      "code": "horzopen",
+      "description": "Horizontal split opening from center outward"
+    },
+    {
+      "name": "Split Close Horizontal",
+      "code": "horzclose",
+      "description": "Horizontal split closing to center"
+    },
+    {
+      "name": "Wind Left",
+      "code": "hlwind",
+      "description": "Horizontal motion blur smear to left"
+    },
+    {
+      "name": "Wind Right",
+      "code": "hrwind",
+      "description": "Horizontal motion blur smear to right"
+    },
+    {
+      "name": "Wind Up",
+      "code": "vuwind",
+      "description": "Vertical motion blur smear upward"
+    },
+    {
+      "name": "Wind Down",
+      "code": "vdwind",
+      "description": "Vertical motion blur smear downward"
+    },
+    {
+      "name": "Distance Fade",
+      "code": "distance",
+      "description": "Depth-based fade with slight blur"
+    },
+    {
+      "name": "Rectangular Crop",
+      "code": "rectcrop",
+      "description": "Rectangle mask transition effect"
+    }
+  ]
+}

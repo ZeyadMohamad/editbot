@@ -10,6 +10,7 @@ from tools.base_tool import BaseTool, ToolResult, ToolRegistry, register_tool
 
 # Import all tools to trigger registration
 from tools.ffmpeg_tool import FFmpegTool
+from tools.rotate_tool import RotateTool
 from tools.whisperx_tool import WhisperXTool
 from tools.captions_tool import CaptionsTool
 from tools.silence_cutter_tool import SilenceCutterTool
@@ -22,6 +23,7 @@ __all__ = [
     "ToolRegistry",
     "register_tool",
     "FFmpegTool",
+    "RotateTool",
     "WhisperXTool",
     "CaptionsTool",
     "SilenceCutterTool",

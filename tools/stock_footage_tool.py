@@ -15,9 +15,19 @@ from tools.base_tool import BaseTool, ToolResult, register_tool
 from tools.ffmpeg_tool import SUPPORTED_VIDEO_EXTENSIONS
 
 
-IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".gif"]
+IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".wepb", ".bmp", ".gif"]
 
-STOCK_KEYWORDS = ["stock", "b-roll", "broll", "cutaway", "overlay", "insert", "footage", "clip"]
+# Keep intent keywords specific to avoid false positives like "clip" or "overlay"
+STOCK_KEYWORDS = [
+    "stock",
+    "stock footage",
+    "stock video",
+    "stock clip",
+    "b-roll",
+    "b roll",
+    "broll",
+    "cutaway"
+]
 
 TIME_TOKEN_PATTERN = r"(?:\d+(?::\d+){1,2}(?:\.\d+)?|\d+(?:\.\d+)?)(?:\s*(?:ms|s|sec|secs|seconds))?"
 TIME_RANGE_REGEX = re.compile(
@@ -45,7 +55,7 @@ SOURCE_RANGE_POST_REGEX = re.compile(
     re.IGNORECASE
 )
 PATH_REGEX = re.compile(
-    r"([A-Za-z]:\\[^\n]*?\.(?:mp4|mov|mkv|avi|webm|m4v|mpeg|mpg|3gp|ts|mts|png|jpg|jpeg|webp|bmp|gif))",
+    r"([A-Za-z]:\\[^\n]*?\.(?:mp4|mov|mkv|avi|webm|m4v|mpeg|mpg|3gp|ts|mts|png|jpg|jpeg|webp|wepb|bmp|gif))",
     re.IGNORECASE
 )
 
@@ -594,8 +604,10 @@ class StockFootageTool(BaseTool):
         crf: int
     ) -> Tuple[bool, Optional[str]]:
         base_info = _probe_media(base_path)
-        start_time = _parse_timecode_to_seconds(item.get("start_time") or item.get("start"))
-        end_time = _parse_timecode_to_seconds(item.get("end_time") or item.get("end"))
+        _st = item.get("start_time") if item.get("start_time") is not None else item.get("start")
+        start_time = _parse_timecode_to_seconds(_st)
+        _et = item.get("end_time") if item.get("end_time") is not None else item.get("end")
+        end_time = _parse_timecode_to_seconds(_et)
         duration = _parse_timecode_to_seconds(item.get("duration"))
         source_start = _parse_timecode_to_seconds(item.get("source_start"))
         source_end = _parse_timecode_to_seconds(item.get("source_end"))
@@ -729,6 +741,8 @@ class StockFootageTool(BaseTool):
 
         cmd += [
             "-c:v", codec,
+            "-pix_fmt", "yuv420p",
+            "-profile:v", "main",
             "-preset", preset,
             "-crf", str(crf)
         ]
@@ -738,7 +752,13 @@ class StockFootageTool(BaseTool):
 
         cmd += ["-movflags", "+faststart", output_path]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
         if result.returncode != 0:
             return False, result.stderr or "ffmpeg overlay failed"
         return True, None
@@ -758,11 +778,13 @@ class StockFootageTool(BaseTool):
         if base_duration <= 0:
             return False, "Base video duration is unknown"
 
-        insert_at = _parse_timecode_to_seconds(item.get("start_time") or item.get("start"))
+        _st = item.get("start_time") if item.get("start_time") is not None else item.get("start")
+        insert_at = _parse_timecode_to_seconds(_st)
         if insert_at is None:
             return False, "Insert requires start_time"
 
-        end_time = _parse_timecode_to_seconds(item.get("end_time") or item.get("end"))
+        _et = item.get("end_time") if item.get("end_time") is not None else item.get("end")
+        end_time = _parse_timecode_to_seconds(_et)
         insert_at = max(0.0, min(insert_at, base_duration))
 
         source_start = _parse_timecode_to_seconds(item.get("source_start")) or 0.0
@@ -824,7 +846,7 @@ class StockFootageTool(BaseTool):
 
         if pre_duration > 0:
             filter_parts.append(
-                f"[0:v]trim=start=0:end={_fmt_time(insert_at)},setpts=PTS-STARTPTS[vpre]"
+                f"[0:v]trim=start=0:end={_fmt_time(insert_at)},setpts=PTS-STARTPTS,setsar=1[vpre]"
             )
             seg = {"v": "vpre"}
             if output_has_audio:
@@ -845,7 +867,7 @@ class StockFootageTool(BaseTool):
         if base_w and base_h:
             scale_part = f"scale={base_w}:{base_h},"
         filter_parts.append(
-            f"[1:v]{scale_part}setpts=PTS-STARTPTS[vstock]"
+            f"[1:v]{scale_part}setpts=PTS-STARTPTS,setsar=1[vstock]"
         )
         seg = {"v": "vstock"}
         if output_has_audio:
@@ -862,7 +884,7 @@ class StockFootageTool(BaseTool):
 
         if post_duration > 0:
             filter_parts.append(
-                f"[0:v]trim=start={_fmt_time(insert_at)}:end={_fmt_time(base_duration)},setpts=PTS-STARTPTS[vpost]"
+                f"[0:v]trim=start={_fmt_time(insert_at)}:end={_fmt_time(base_duration)},setpts=PTS-STARTPTS,setsar=1[vpost]"
             )
             seg = {"v": "vpost"}
             if output_has_audio:
@@ -905,13 +927,21 @@ class StockFootageTool(BaseTool):
 
         cmd += [
             "-c:v", codec,
+            "-pix_fmt", "yuv420p",
+            "-profile:v", "main",
             "-preset", preset,
             "-crf", str(crf),
             "-movflags", "+faststart",
             output_path
         ]
 
-        result = subprocess.run(cmd, capture_output=True, text=True)
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace"
+        )
         if result.returncode != 0:
             return False, result.stderr or "ffmpeg insert failed"
         return True, None

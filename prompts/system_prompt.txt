@@ -36,6 +36,7 @@ Always respond with valid JSON:
 3. Check if highlight style is supported
 4. Check if language is supported for transcription
 5. Check if video format is supported
+6. Check if requested transition name exists in available transitions
 
 ## WHEN TO SET success=false
 - User requests unsupported font/color/style

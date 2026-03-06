@@ -16,6 +16,8 @@ If captions are also requested:
 If the user provides exact cut ranges (e.g., "cut from 18.005 to 18.670"):
 - Use **silence_cutter** with **manual_cut_segments**
 - Each segment is an object: {"start": seconds, "end": seconds}
+- Treat all manual segments as absolute timestamps on the original source timeline
+- Apply all manual segments in one operation/pass (never sequential re-timing after each cut)
 - This overrides automatic silence/filler detection
 - Do not apply padding unless the user explicitly asks
 

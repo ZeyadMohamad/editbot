@@ -146,6 +146,7 @@ class CaptionsTool(BaseTool):
         """Normalize highlight configuration used for layered rendering."""
         defaults = {
             "enabled": False,
+            "force_disable": False,
             "highlight_type": "word_by_word",  # word_by_word | progressive
             "highlight_color": "00FFFF",       # yellow in ASS BGR
             "progressive_color": "00FFFF",
@@ -173,6 +174,17 @@ class CaptionsTool(BaseTool):
 
         options = dict(defaults)
         options.update(incoming)
+        explicit_enabled = "enabled" in incoming
+        force_disable = any(
+            self._to_bool(incoming.get(key), False)
+            for key in ("force_disable", "no_highlight", "disable_highlight", "disable")
+        )
+
+        if force_disable:
+            options = dict(defaults)
+            options["enabled"] = False
+            options["force_disable"] = True
+            return options
 
         # Handle legacy bool progressive_enabled => highlight_type
         if "progressive_enabled" in incoming:
@@ -185,7 +197,7 @@ class CaptionsTool(BaseTool):
             options["highlight_type"] = "word_by_word"
 
         options["enabled"] = self._to_bool(options.get("enabled"), False)
-        if not options["enabled"] and highlight_options:
+        if not options["enabled"] and highlight_options and not explicit_enabled:
             # If user provided any highlight-specific field, enable highlighting.
             for key in ["highlight_type", "highlight_color", "current_word_bold", "current_word_box", "progressive_color", "box_color"]:
                 if key in incoming:

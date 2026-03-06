@@ -250,6 +250,125 @@
         "supported_formats.json"
       ]
     },
+    "apply_transitions": {
+      "name": "Apply Transitions",
+      "description": "Combine multiple clips using FFmpeg xfade transitions",
+      "module": "tools.ffmpeg_tool",
+      "class": "FFmpegTool",
+      "method": "apply_transitions",
+      "category": "video",
+      "inputs": {
+        "clips": {
+          "type": "array",
+          "required": false,
+          "description": "Ordered list of clips. Each item can be a path string or {path,start_time,end_time,duration}. Required if segments is not provided."
+        },
+        "segments": {
+          "type": "array",
+          "required": false,
+          "description": "Optional list of segments for a single source clip. Each item can be {start_time,end_time,duration} with optional path."
+        },
+        "source_path": {
+          "type": "file",
+          "required": false,
+          "description": "Default clip path to use when segments or clip items omit path."
+        },
+        "transitions": {
+          "type": "array",
+          "required": false,
+          "description": "Optional list of transitions between clips. Each item can be a string or {name/code,duration}"
+        },
+        "transition_duration": {
+          "type": "float",
+          "required": false,
+          "default": 1.0,
+          "description": "Default transition duration (seconds) when not specified per transition"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Output video path"
+        },
+        "codec": {
+          "type": "string",
+          "required": false,
+          "default": "libx264"
+        },
+        "preset": {
+          "type": "string",
+          "required": false,
+          "default": "medium"
+        },
+        "crf": {
+          "type": "int",
+          "required": false,
+          "default": 23
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Output video with transitions"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "transitions.json",
+        "ffmpeg_settings.json",
+        "supported_formats.json"
+      ]
+    },
+    "rotate_media": {
+      "name": "Rotate Media",
+      "description": "Rotate a single video or image by clockwise degrees and save output",
+      "module": "tools.rotate_tool",
+      "class": "RotateTool",
+      "method": "rotate_media",
+      "category": "video",
+      "inputs": {
+        "input_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to input video or image"
+        },
+        "output_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path for rotated output media"
+        },
+        "rotation_cw_deg": {
+          "type": "any",
+          "required": true,
+          "description": "Clockwise rotation in degrees, or text like 'rotate left 2 times'"
+        },
+        "codec": {
+          "type": "string",
+          "required": false,
+          "default": "libx264"
+        },
+        "preset": {
+          "type": "string",
+          "required": false,
+          "default": "medium"
+        },
+        "crf": {
+          "type": "int",
+          "required": false,
+          "default": 23
+        }
+      },
+      "outputs": {
+        "media_file": {
+          "type": "file",
+          "description": "Rotated media output"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "supported_formats.json",
+        "ffmpeg_settings.json"
+      ]
+    },
     "stock_footage": {
       "name": "Stock Footage",
       "description": "Overlay or insert stock videos/images into a base video",

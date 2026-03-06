@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EditBot Timeline Viewer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/timeline.css" />
+</head>
+<body>
+  <header class="tl-topbar">
+    <div class="brand">
+      <div class="logo">EB</div>
+      <div>
+        <div class="title">Timeline Viewer</div>
+        <div class="subtitle">Precise duration & cut-point finder</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="openMainBtn" class="ghost" type="button">Back To Studio</button>
+    </div>
+  </header>
+
+  <main class="tl-layout">
+    <!-- Video select -->
+    <div class="tl-video-select-bar">
+      <label for="videoSelect">Video Source</label>
+      <select id="videoSelect"></select>
+    </div>
+
+    <!-- Player area -->
+    <section class="tl-player-section">
+      <div class="tl-player-wrap">
+        <video id="videoPlayer" preload="metadata" playsinline></video>
+      </div>
+    </section>
+
+    <!-- Transport controls -->
+    <div class="tl-transport">
+      <div class="tl-transport-left">
+        <button id="skipBackBtn" class="tl-btn" title="Back 1 frame" type="button">&#9664;&#9664;</button>
+        <button id="playBtn" class="tl-btn tl-play-btn" title="Play / Pause" type="button">&#9654;</button>
+        <button id="skipFwdBtn" class="tl-btn" title="Forward 1 frame" type="button">&#9654;&#9654;</button>
+        <button id="rotateBtn" class="tl-btn" title="Rotate video 90°" type="button">&#x21BB; Rotate</button>
+        <span class="tl-speed-group">
+          <label for="speedSelect">Speed</label>
+          <select id="speedSelect">
+            <option value="0.25">0.25x</option>
+            <option value="0.5">0.5x</option>
+            <option value="1" selected>1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </span>
+      </div>
+      <div class="tl-transport-center">
+        <span class="tl-time-display" id="currentTimeDisplay">0.000s</span>
+        <span class="tl-time-sep">/</span>
+        <span class="tl-time-display tl-time-total" id="totalTimeDisplay">0.000s</span>
+      </div>
+      <div class="tl-transport-right">
+        <button id="markInBtn" class="tl-btn tl-mark-btn" title="Set In Point [I]" type="button">In</button>
+        <button id="markOutBtn" class="tl-btn tl-mark-btn" title="Set Out Point [O]" type="button">Out</button>
+        <span class="tl-selection-display" id="selectionDisplay">No selection</span>
+        <button id="copyRangeBtn" class="tl-btn" title="Copy range to clipboard" type="button">Copy</button>
+        <button id="clearMarksBtn" class="tl-btn" title="Clear In/Out marks" type="button">Clear</button>
+      </div>
+    </div>
+
+    <!-- Timeline area -->
+    <section class="tl-timeline-section">
+      <!-- Time ruler -->
+      <div class="tl-ruler-wrap" id="rulerWrap">
+        <canvas id="rulerCanvas" class="tl-ruler-canvas"></canvas>
+      </div>
+      <!-- Waveform / clip bar -->
+      <div class="tl-track-wrap" id="trackWrap">
+        <canvas id="trackCanvas" class="tl-track-canvas"></canvas>
+        <!-- Playhead -->
+        <div class="tl-playhead" id="playhead">
+          <div class="tl-playhead-head"></div>
+          <div class="tl-playhead-line"></div>
+        </div>
+        <!-- In/Out overlay -->
+        <div class="tl-selection-overlay" id="selectionOverlay"></div>
+      </div>
+    </section>
+
+    <!-- Markers / cut list -->
+    <section class="tl-markers-section">
+      <div class="tl-markers-header">
+        <h3>Cut Points</h3>
+        <button id="addMarkerBtn" class="tl-btn" title="Add marker at current time [M]" type="button">+ Add Marker</button>
+        <button id="copyAllBtn" class="tl-btn" title="Copy all markers as JSON" type="button">Copy All</button>
+      </div>
+      <div class="tl-markers-list" id="markersList">
+        <div class="tl-markers-empty">No markers yet. Press <kbd>M</kbd> or click "Add Marker" to mark positions.</div>
+      </div>
+    </section>
+  </main>
+
+  <div class="tl-toast" id="toast"></div>
+
+  <script src="/static/timeline.js"></script>
+</body>
+</html>

@@ -1064,7 +1064,7 @@ class SilenceCutterTool(BaseTool):
             "ffmpeg", "-y", "-i", video_path,
             "-filter_complex", filter_complex,
             "-map", "[outv]", "-map", "[outa]",
-            "-c:v", codec, "-preset", preset, "-crf", str(crf),
+            "-c:v", codec, "-pix_fmt", "yuv420p", "-profile:v", "main", "-preset", preset, "-crf", str(crf),
             "-c:a", "aac",
             "-movflags", "+faststart",
             output_path

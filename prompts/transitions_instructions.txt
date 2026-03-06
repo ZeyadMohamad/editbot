@@ -1,0 +1,23 @@
+## TRANSITIONS
+When the user asks for transitions between clips, use the `apply_transitions` tool.
+
+Inputs for `apply_transitions`:
+- `clips`: ordered list of clips. Each clip can be a string path or an object with:
+  - `path` (required unless `source_path` is provided)
+  - `start_time` (optional)
+  - `end_time` (optional)
+  - `duration` (optional)
+- `segments`: optional list of segment objects for transitions inside a single clip.
+  - Each segment can omit `path` if `source_path` is provided.
+  - Use `start_time`/`end_time`/`duration` for each segment.
+- `source_path`: default clip path used when segments or clips omit `path`.
+- `transitions`: optional list describing each cut (length should be `len(clips) - 1`).
+  - Each transition entry can be a string (Premiere name or xfade code),
+    or an object with `name`/`code` and optional `duration` (seconds).
+- `transition_duration`: default duration in seconds if not specified per transition.
+- `output_path`: output video path.
+- `codec`, `preset`, `crf`: optional encoding settings.
+
+Notes:
+- If the user names a Premiere transition, pass the Premiere name as `name`; the tool will map it to the correct xfade code.
+- If no transitions are specified, default to `Cross Dissolve`.

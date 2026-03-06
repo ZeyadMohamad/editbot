@@ -118,6 +118,7 @@ class Orchestrator:
         # Import tool modules to trigger registration
         try:
             from tools import ffmpeg_tool
+            from tools import rotate_tool
             from tools import whisperx_tool
             from tools import captions_tool
             from tools import silence_cutter_tool
@@ -434,7 +435,9 @@ class Orchestrator:
             "generate_captions": "generate_ass_file",
             "render_subtitles": "render_subtitles",
             "silence_cutter": "cut_silence",
-            "stock_footage": "apply_stock_footage"
+            "stock_footage": "apply_stock_footage",
+            "apply_transitions": "apply_transitions",
+            "rotate_media": "rotate_media"
         }
         
         method_name = method_map.get(tool_type)
@@ -504,5 +507,15 @@ class Orchestrator:
         for job_exec in plan_exec.jobs.values():
             if job_exec.job.job_type == "silence_cutter":
                 return job_exec.resolved_outputs.get("output_video_path")
+
+        # Fallback: transitions output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "apply_transitions":
+                return job_exec.resolved_outputs.get("video_file") or job_exec.resolved_outputs.get("output_path")
+
+        # Fallback: rotate media output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "rotate_media":
+                return job_exec.resolved_outputs.get("media_file") or job_exec.resolved_outputs.get("output_path")
         
         return None

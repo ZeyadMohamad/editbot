@@ -1,0 +1,160 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EditBot Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/styles.css?v=20260302a" />
+</head>
+<body>
+  <div class="bg-noise"></div>
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+  <div class="orb orb-3"></div>
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">EB</div>
+      <div>
+        <div class="title">EditBot Studio</div>
+        <div class="subtitle">AI Video Editing Command Center</div>
+      </div>
+    </div>
+    <nav class="topnav">
+      <button class="nav-link" data-panel="configs" type="button">Configs</button>
+      <button class="nav-link" data-panel="tools" type="button">Tools</button>
+      <button class="nav-link" data-panel="examples" type="button">Examples</button>
+    </nav>
+    <div class="topbar-actions">
+      <div class="status" id="statusPill">Checking status...</div>
+      <button class="ghost" id="timelineBtn" type="button">Timeline</button>
+      <button class="ghost" id="positionHelperBtn" type="button">Position Helper</button>
+      <button class="ghost" id="toggleDrawerBtn" type="button">Panels</button>
+      <button class="ghost" id="refreshBtn" type="button">Refresh data</button>
+      <button class="icon-btn" id="themeToggleBtn" type="button" aria-label="Toggle dark mode">
+        <span class="icon-moon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M21.5 14.5a8.5 8.5 0 0 1-10.8-10.8 1 1 0 0 0-1.3-1.3A10.5 10.5 0 1 0 22.8 15.8a1 1 0 0 0-1.3-1.3Z"></path>
+          </svg>
+        </span>
+        <span class="icon-sun" aria-hidden="true">
+          <svg viewBox="0 0 24 24" role="img">
+            <path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10Zm0-5a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1Zm0 18a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1Zm9-8a1 1 0 0 1-1 1h-2a1 1 0 1 1 0-2h2a1 1 0 0 1 1 1ZM5 12a1 1 0 0 1-1 1H2a1 1 0 1 1 0-2h2a1 1 0 0 1 1 1Zm13.657-6.657a1 1 0 0 1 1.414 0l1.414 1.414a1 1 0 0 1-1.414 1.414l-1.414-1.414a1 1 0 0 1 0-1.414ZM3.515 17.485a1 1 0 0 1 1.414 0l1.414 1.414a1 1 0 0 1-1.414 1.414L3.515 18.9a1 1 0 0 1 0-1.414Zm16.97 1.414a1 1 0 0 1-1.414 1.414l-1.414-1.414a1 1 0 1 1 1.414-1.414l1.414 1.414ZM6.343 5.343a1 1 0 0 1-1.414 1.414L3.515 5.343A1 1 0 0 1 4.93 3.93l1.414 1.414Z"></path>
+          </svg>
+        </span>
+      </button>
+    </div>
+  </header>
+
+  <main class="layout drawer-closed" id="layoutRoot">
+    <section class="chat-panel reveal">
+      <div class="upload-card">
+        <div class="upload-zone" id="dropZone">
+          <input type="file" id="fileInput" multiple hidden />
+          <div class="upload-copy">
+            <div class="upload-title">Drag & drop your media</div>
+            <div class="upload-sub">Videos, stock footage, images, subtitles, audio. Multiple files supported.</div>
+          </div>
+          <div class="upload-actions">
+            <button class="primary" id="browseBtn" type="button">Browse files</button>
+            <button class="ghost" id="clearUploadsBtn" type="button">Clear list</button>
+          </div>
+        </div>
+        <div class="upload-meta">
+          <div class="upload-select">
+            <label for="activeFileSelect">Active video</label>
+            <select id="activeFileSelect"></select>
+          </div>
+          <div class="upload-queue" id="uploadQueue"></div>
+        </div>
+      </div>
+
+      <div class="chat-card">
+        <div class="chat-hero">
+          <div class="hero-title">EditBot Studio</div>
+          <div class="hero-sub">Chat with your editing assistant</div>
+          <div class="hero-sub">Upload assets, describe what you want, and get a production-ready edit pipeline.</div>
+          <div class="hero-sub">Tell me what to edit and I will build the pipeline.</div>
+          <div class="hero-meta">
+            <span class="badge">Local GPU Ready</span>
+            <span class="badge">FastAPI</span>
+          </div>
+        </div>
+        <div class="chat-window" id="chatWindow">
+          <div class="message assistant">
+            <div class="avatar">EB</div>
+            <div class="bubble">
+              <div class="bubble-title">Welcome back.</div>
+              <div class="bubble-text">Drop a video, then tell me exactly how you want it edited. I can handle captions, silence cuts, transitions, and stock footage inserts.</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="process-tracker" id="processTracker" hidden>
+          <div class="tracker-header">
+            <div>
+              <div class="tracker-title">Processing</div>
+              <div class="tracker-sub" id="trackerSub">Waiting for a new request.</div>
+            </div>
+            <div class="tracker-badge" id="trackerBadge">Idle</div>
+          </div>
+          <div class="tracker-steps" id="trackerSteps"></div>
+          <div class="tracker-bar">
+            <div class="tracker-bar-fill" id="trackerBar"></div>
+          </div>
+        </div>
+
+        <form class="composer" id="composerForm">
+          <button class="scroll-bottom-btn" id="scrollToBottomBtn" type="button" aria-label="Scroll to latest message">
+            <span aria-hidden="true">&#8595;</span>
+          </button>
+          <div class="composer-row">
+            <textarea id="promptInput" rows="1" placeholder="Describe your edit. Example: 'Add bold yellow captions, cut silences, add cross dissolve transitions.'"></textarea>
+            <button class="send-btn" type="submit">Send</button>
+          </div>
+          <div class="chip-row" id="chipRow"></div>
+        </form>
+      </div>
+    </section>
+
+    <aside class="side-panel reveal">
+      <div class="section-bar" id="sectionBar">
+        <button class="section-tab" data-panel="configs" type="button">
+          <span>Configs</span>
+        </button>
+        <button class="section-tab" data-panel="tools" type="button">
+          <span>Tools</span>
+        </button>
+        <button class="section-tab" data-panel="examples" type="button">
+          <span>Examples</span>
+        </button>
+      </div>
+      <div class="drawer" id="drawer">
+        <div class="drawer-header">
+          <div>
+            <div class="drawer-title" id="drawerTitle">Configurations</div>
+            <div class="drawer-sub" id="drawerSub">Available fonts, sizes, transitions, and style modes detected from your system configs.</div>
+          </div>
+          <button class="ghost" id="drawerClose" type="button">Close</button>
+        </div>
+        <div class="drawer-body">
+          <div class="drawer-section" data-panel="configs">
+            <div class="config-grid" id="configGrid"></div>
+          </div>
+          <div class="drawer-section" data-panel="tools">
+            <div class="tool-list" id="toolList"></div>
+          </div>
+          <div class="drawer-section" data-panel="examples">
+            <div class="example-list" id="exampleList"></div>
+          </div>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <script src="/static/app.js?v=20260302a"></script>
+</body>
+</html>

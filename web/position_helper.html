@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>EditBot Position Helper</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/position-helper.css" />
+</head>
+<body>
+  <header class="helper-topbar">
+    <div class="brand">
+      <div class="logo">EB</div>
+      <div>
+        <div class="title">Position Helper</div>
+        <div class="subtitle">Pick exact overlay coordinates from your uploaded video</div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="openMainBtn" class="ghost" type="button">Back To Studio</button>
+    </div>
+  </header>
+
+  <main class="helper-layout">
+    <section class="video-card">
+      <div class="video-controls">
+        <label for="videoSelect">Video Source</label>
+        <select id="videoSelect"></select>
+        <div id="videoInfo" class="video-info">No video loaded</div>
+      </div>
+      <div class="video-stage" id="videoStage">
+        <video id="videoPlayer" controls preload="metadata" playsinline></video>
+        <div class="overlay-layer" id="overlayLayer">
+          <div class="crosshair-x" id="crosshairX"></div>
+          <div class="crosshair-y" id="crosshairY"></div>
+          <div class="crosshair-dot" id="crosshairDot"></div>
+        </div>
+      </div>
+      <div class="hint">
+        Move the mouse over the video to get exact coordinates in source pixels.
+      </div>
+    </section>
+
+    <aside class="coords-card">
+      <h2>Cursor Coordinates</h2>
+      <div class="coord-grid">
+        <div class="coord-item">
+          <div class="label">Pixel X</div>
+          <div class="value" id="pixelX">-</div>
+        </div>
+        <div class="coord-item">
+          <div class="label">Pixel Y</div>
+          <div class="value" id="pixelY">-</div>
+        </div>
+        <div class="coord-item">
+          <div class="label">Percent X</div>
+          <div class="value" id="percentX">-</div>
+        </div>
+        <div class="coord-item">
+          <div class="label">Percent Y</div>
+          <div class="value" id="percentY">-</div>
+        </div>
+      </div>
+      <div class="copy-box">
+        <textarea id="coordPayload" readonly></textarea>
+        <button id="copyCoordsBtn" class="primary" type="button">Copy Payload</button>
+      </div>
+      <p class="note">
+        Use this payload in overlay mode, for example:
+        <code>{"x": 960, "y": 540, "mode": "overlay"}</code>
+      </p>
+    </aside>
+  </main>
+
+  <script src="/static/position-helper.js"></script>
+</body>
+</html>

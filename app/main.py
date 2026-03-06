@@ -8,8 +8,9 @@ import json
 import re
 import shutil
 import subprocess
+from datetime import datetime
 from pathlib import Path
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -78,22 +79,36 @@ SUPPORTED_VIDEO_EXTENSIONS = [
     ".webm", ".m4v", ".mpeg", ".mpg", ".3gp", ".ts", ".mts"
 ]
 
+SUPPORTED_IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".wepb", ".bmp", ".gif", ".tiff"]
 
-def validate_video(video_path: str) -> Path:
-    """Validate video file exists and is supported"""
+def validate_media(media_path: str, prompt: Optional[str] = None) -> Path:
+    """Validate input media file. Images are allowed for rotate-only requests."""
     # Clean the path: remove quotes and whitespace
-    video_path = video_path.strip().strip('"').strip("'")
-    path = Path(video_path)
+    media_path = media_path.strip().strip('"').strip("'")
+    path = Path(media_path)
     
     if not path.exists():
-        print(f"{Fore.RED}Error: Video file not found: {video_path}{Style.RESET_ALL}")
+        print(f"{Fore.RED}Error: Media file not found: {media_path}{Style.RESET_ALL}")
         sys.exit(1)
-    
-    if path.suffix.lower() not in SUPPORTED_VIDEO_EXTENSIONS:
-        print(f"{Fore.RED}Error: Unsupported video format: {path.suffix}{Style.RESET_ALL}")
-        print(f"{Fore.GRAY}Supported formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}{Style.RESET_ALL}")
+
+    ext = path.suffix.lower()
+    if ext in SUPPORTED_VIDEO_EXTENSIONS:
+        return path
+
+    if ext in SUPPORTED_IMAGE_EXTENSIONS:
+        prompt_lower = (prompt or "").lower()
+        if "rotate" in prompt_lower or "clockwise" in prompt_lower or "counterclockwise" in prompt_lower or "anticlockwise" in prompt_lower:
+            return path
+        print(f"{Fore.RED}Error: Image input is supported for rotate requests only.{Style.RESET_ALL}")
         sys.exit(1)
-    
+
+    print(f"{Fore.RED}Error: Unsupported media format: {path.suffix}{Style.RESET_ALL}")
+    print(
+        f"{Fore.GRAY}Supported video formats: {', '.join(SUPPORTED_VIDEO_EXTENSIONS)}\n"
+        f"Supported image formats (rotate-only): {', '.join(SUPPORTED_IMAGE_EXTENSIONS)}{Style.RESET_ALL}"
+    )
+    sys.exit(1)
+
     return path
 
 # Default slowdown speed for captions - 0.80 means 20% slower, 0.85 means 15% slower, etc.
@@ -174,7 +189,7 @@ def interactive_mode():
             continue
         
         path = Path(video_input)
-        if path.exists() and path.suffix.lower() in SUPPORTED_VIDEO_EXTENSIONS:
+        if path.exists() and path.suffix.lower() in (SUPPORTED_VIDEO_EXTENSIONS + SUPPORTED_IMAGE_EXTENSIONS):
             video_path = path
             break
         else:
@@ -185,6 +200,8 @@ def interactive_mode():
     
     print(f"\n{Fore.GRAY}Example prompts:{Style.RESET_ALL}")
     print(f"  - Add yellow captions")
+    print(f"  - Rotate right 2 times")
+    print(f"  - Rotate 37.5 degrees clockwise")
     print(f"  - Add white subtitles at the bottom")
     print(f"  - Remove silence and filler words, then add captions")
     print(f"  - Cut from 18.005 to 18.670, then add captions")
@@ -319,6 +336,7 @@ def parse_highlight_options_from_prompt(prompt: str, config_loader) -> Dict[str,
 
     options: Dict[str, Any] = {
         "enabled": False,
+        "force_disable": False,
         "highlight_type": "word_by_word",
         "highlight_color": colors.get("yellow", "00FFFF"),
         "progressive_color": colors.get("yellow", "00FFFF"),
@@ -328,8 +346,23 @@ def parse_highlight_options_from_prompt(prompt: str, config_loader) -> Dict[str,
         "box_alpha": "66",
     }
 
-    # Explicit "off"
-    if any(x in prompt_lower for x in ["no highlight", "without highlight", "plain subtitle", "plain captions"]):
+    # Explicit "off" always wins.
+    if any(
+        x in prompt_lower
+        for x in [
+            "no highlight",
+            "no highlighting",
+            "without highlight",
+            "without highlighting",
+            "don't highlight",
+            "do not highlight",
+            "plain subtitle",
+            "plain subtitles",
+            "plain caption",
+            "plain captions",
+        ]
+    ):
+        options["force_disable"] = True
         return options
 
     highlight_triggers = [
@@ -381,6 +414,222 @@ def parse_highlight_options_from_prompt(prompt: str, config_loader) -> Dict[str,
         options["progressive_color"] = options["highlight_color"]
 
     return options
+
+
+TRANSITION_SYNONYMS = {
+    "cross dissolve": "Cross Dissolve",
+    "crossdissolve": "Cross Dissolve",
+    "crossfade": "Cross Dissolve",
+    "cross fade": "Cross Dissolve",
+    "dip to black": "Dip to Black",
+    "fade to black": "Dip to Black",
+    "dip to white": "Dip to White",
+    "fade to white": "Dip to White",
+}
+
+IMAGE_EXTENSIONS = list(SUPPORTED_IMAGE_EXTENSIONS)
+
+
+def _parse_timecode_seconds(value: Any) -> Optional[float]:
+    if value is None:
+        return None
+    if isinstance(value, (int, float)):
+        return float(value)
+    text = str(value).strip().lower()
+    text = re.sub(r"[a-z]+$", "", text).strip(" ,.;")
+    if not text:
+        return None
+    if ":" in text:
+        parts = text.split(":")
+        if len(parts) not in (2, 3):
+            return None
+        try:
+            nums = [float(p) for p in parts]
+        except ValueError:
+            return None
+        if len(nums) == 2:
+            minutes, seconds = nums
+            return minutes * 60.0 + seconds
+        hours, minutes, seconds = nums
+        return hours * 3600.0 + minutes * 60.0 + seconds
+    try:
+        return float(text)
+    except ValueError:
+        return None
+
+
+def _normalize_stock_mode(value: Any) -> str:
+    mode = (value or "overlay").strip().lower()
+    if mode in ("overlay", "above", "layer", "over"):
+        return "overlay"
+    if mode in ("insert", "splice", "cutaway", "extension", "replace"):
+        return "insert"
+    return mode
+
+
+def _is_image_path(path: str) -> bool:
+    return Path(path).suffix.lower() in IMAGE_EXTENSIONS
+
+
+def rotation_mentioned(prompt: str) -> bool:
+    prompt_lower = (prompt or "").lower()
+    return any(tok in prompt_lower for tok in ["rotate", "rotation", "clockwise", "counterclockwise", "anticlockwise"])
+
+
+def parse_rotation_from_prompt(prompt: str) -> Optional[float]:
+    if not prompt or not rotation_mentioned(prompt):
+        return None
+    try:
+        from tools.rotate_tool import parse_rotation_cw_degrees
+        return parse_rotation_cw_degrees(prompt)
+    except Exception:
+        return None
+
+
+def parse_transition_from_prompt(prompt: str, config_loader) -> Optional[Dict[str, Any]]:
+    if not prompt:
+        return None
+    prompt_lower = prompt.lower()
+    if not any(k in prompt_lower for k in ["transition", "cross dissolve", "crossfade", "xfade", "dip to black", "dip to white"]):
+        return None
+
+    transitions_config = config_loader.get_config("transitions") or {}
+    transitions = transitions_config.get("transitions", [])
+
+    name = None
+    for item in transitions:
+        candidate = item.get("name")
+        if candidate and candidate.lower() in prompt_lower:
+            name = candidate
+            break
+
+    if not name:
+        for key, value in TRANSITION_SYNONYMS.items():
+            if key in prompt_lower:
+                name = value
+                break
+
+    if not name:
+        name = "Cross Dissolve"
+
+    duration = None
+    duration_range_match = re.search(
+        r"(?:transition(?:\s*duration|\s*length)?|duration|length)\s*"
+        r"(?:is|=|:|of|for|from)?\s*"
+        r"(?:duration\s*)?"
+        r"(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds)?\s*"
+        r"(?:to|-|–|—)\s*"
+        r"(\d+(?:\.\d+)?)\s*(?:s|sec|secs|seconds)?",
+        prompt_lower
+    )
+    if duration_range_match:
+        start_val = _parse_timecode_seconds(duration_range_match.group(1))
+        end_val = _parse_timecode_seconds(duration_range_match.group(2))
+        if start_val is not None and end_val is not None and end_val > start_val:
+            duration = end_val - start_val
+
+    if duration is None:
+        duration_match = re.search(
+            r"(?:transition\s*duration|transition\s*length|transition)\s*(?:is|=|:|of|for)?\s*(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds)?",
+            prompt_lower
+        )
+        if not duration_match:
+            duration_match = re.search(
+                r"(?:duration|length)\s*(?:is|=|:|of|for)?\s*(\d+(?:\.\d+)?)\s*(s|sec|secs|seconds)?",
+                prompt_lower
+            )
+        if duration_match:
+            parsed_duration = _parse_timecode_seconds(duration_match.group(1))
+            if parsed_duration is not None and parsed_duration > 0:
+                duration = parsed_duration
+
+    return {"name": name, "duration": duration}
+
+
+def apply_insert_with_transitions(
+    base_video: Path,
+    stock_item: Dict[str, Any],
+    transition: Dict[str, Any],
+    output_dir: Path,
+    ffmpeg_tool
+) -> Dict[str, Any]:
+    from tools.ffmpeg_tool import _probe_media as _probe_media_ffmpeg
+
+    stock_path = stock_item.get("path") or stock_item.get("file") or stock_item.get("source")
+    if not stock_path:
+        return {"success": False, "error": "Missing stock path for transition insert"}
+
+    insert_at = _parse_timecode_seconds(stock_item.get("start_time") or stock_item.get("start"))
+    if insert_at is None:
+        return {"success": False, "error": "Insert transition requires start_time"}
+
+    end_time = _parse_timecode_seconds(stock_item.get("end_time") or stock_item.get("end"))
+    duration = _parse_timecode_seconds(stock_item.get("duration"))
+    source_start = _parse_timecode_seconds(stock_item.get("source_start")) or 0.0
+    source_end = _parse_timecode_seconds(stock_item.get("source_end"))
+
+    base_info = _probe_media_ffmpeg(str(base_video))
+    base_duration = base_info.get("duration", 0.0)
+    if base_duration <= 0:
+        return {"success": False, "error": "Could not determine base video duration for transitions"}
+
+    insert_at = max(0.0, min(insert_at, base_duration))
+    post_duration = max(0.0, base_duration - insert_at)
+
+    stock_is_image = _is_image_path(str(stock_path))
+    stock_info = _probe_media_ffmpeg(str(stock_path))
+
+    stock_duration = None
+    if duration is not None:
+        stock_duration = max(0.0, duration)
+    elif source_end is not None:
+        stock_duration = max(0.0, source_end - source_start)
+    elif end_time is not None:
+        stock_duration = max(0.0, end_time - insert_at)
+    elif not stock_is_image:
+        stock_duration = max(0.0, stock_info.get("duration", 0.0) - source_start)
+
+    if stock_duration is None or stock_duration <= 0:
+        if stock_is_image:
+            return {"success": False, "error": "Insert image requires duration or end_time"}
+        return {"success": False, "error": "Could not determine stock duration for transitions"}
+
+    clips: List[Dict[str, Any]] = []
+    if insert_at > 0:
+        clips.append({
+            "path": str(base_video),
+            "start_time": 0.0,
+            "duration": insert_at
+        })
+    clips.append({
+        "path": str(stock_path),
+        "start_time": source_start,
+        "duration": stock_duration
+    })
+    if post_duration > 0:
+        clips.append({
+            "path": str(base_video),
+            "start_time": insert_at,
+            "duration": post_duration
+        })
+
+    if len(clips) < 2:
+        return {"success": False, "error": "Not enough clips to apply transitions"}
+
+    transition_name = (transition or {}).get("name") or "Cross Dissolve"
+    transition_duration = (transition or {}).get("duration")
+
+    transitions_payload: Any = transition_name
+    if transition_duration is not None:
+        transitions_payload = [{"name": transition_name, "duration": transition_duration}]
+
+    output_path = output_dir / f"{base_video.stem}_stock_transition.mp4"
+    return ffmpeg_tool.apply_transitions(
+        clips=clips,
+        output_path=str(output_path),
+        transitions=transitions_payload,
+        transition_duration=transition_duration
+    )
 
 
 def should_apply_captions(prompt: str) -> bool:
@@ -445,13 +694,20 @@ def _determine_tool_order(
     return sorted(ops, key=sort_key)
 
 
-def _count_steps(tool_order: list, use_captions: bool) -> int:
-    steps = 0
+def _count_steps(
+    tool_order: list,
+    use_captions: bool,
+    apply_cut_transitions: bool = False,
+    apply_rotation: bool = False
+) -> int:
+    steps = 1 if apply_rotation else 0
     for op in tool_order:
         if op == "stock":
             steps += 1
         elif op == "cut":
             steps += 2  # extract audio + cut
+            if apply_cut_transitions:
+                steps += 1
     if use_captions:
         steps += 4  # extract audio + transcribe + captions + render
     return max(steps, 1)
@@ -496,6 +752,7 @@ def run_caption_pipeline(
 ) -> Dict[str, Any]:
     """Run the full captioning pipeline."""
     from tools.ffmpeg_tool import FFmpegTool
+    from tools.rotate_tool import RotateTool
     from tools.whisperx_tool import WhisperXTool
     from tools.captions_tool import CaptionsTool
     from tools.silence_cutter_tool import (
@@ -516,15 +773,27 @@ def run_caption_pipeline(
     workspace = Path(output_dir) if output_dir else PROJECT_ROOT / "workspace"
     workspace.mkdir(parents=True, exist_ok=True)
     
-    video_name = video_path.stem
+    def _clean_video_stem(path: Path) -> str:
+        stem = path.stem
+        if "__" in stem:
+            stem = stem.rsplit("__", 1)[-1]
+        stem = re.sub(r"[^A-Za-z0-9_-]+", "_", stem).strip("_")
+        return stem or "editbot_video"
+
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    video_name = f"{_clean_video_stem(video_path)}_{timestamp}"
     
     print(f"\n{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
     print(f"{Fore.GREEN}Processing: {video_path.name}{Style.RESET_ALL}")
     print(f"{Fore.CYAN}{'='*60}{Style.RESET_ALL}")
     
     ffmpeg = FFmpegTool()
+    rotate_tool = RotateTool()
     config_loader = ConfigLoader()
     use_captions = should_apply_captions(prompt)
+    transition_request = parse_transition_from_prompt(prompt, config_loader)
+    rotation_requested = rotation_mentioned(prompt)
+    rotation_cw_deg = parse_rotation_from_prompt(prompt)
 
     whisper_tool = None
     captions = None
@@ -573,6 +842,31 @@ def run_caption_pipeline(
         if parsed_items:
             stock_items = parsed_items
 
+    input_is_image = _is_image_path(str(video_path))
+    if input_is_image:
+        disallowed = []
+        if bool(stock_items):
+            disallowed.append("stock footage")
+        if use_silence_cut:
+            disallowed.append("silence cutting")
+        if use_captions:
+            disallowed.append("captions")
+        if transition_request:
+            disallowed.append("transitions")
+        if disallowed:
+            results["errors"].append(
+                f"Image input currently supports rotate-only workflow. Unsupported with image: {', '.join(disallowed)}."
+            )
+            return results
+        if not rotation_requested:
+            results["errors"].append("Image input requires a rotate request (for example: 'rotate right 2 times').")
+            return results
+    elif rotation_requested and rotation_cw_deg is None:
+        results["errors"].append(
+            "Could not parse rotation amount. Use degrees or left/right turns, e.g. 'rotate 45 degrees' or 'rotate left 2 times'."
+        )
+        return results
+
     try:
         cut_keywords = list(dict.fromkeys(list(MANUAL_CUT_VERBS) + list(SILENCE_KEYWORDS)))
         tool_order = _determine_tool_order(
@@ -582,7 +876,9 @@ def run_caption_pipeline(
             stock_keywords=STOCK_KEYWORDS,
             cut_keywords=cut_keywords
         )
-        step_total = _count_steps(tool_order, use_captions)
+        apply_cut_transitions = bool(transition_request) and ("cut" in tool_order)
+        apply_rotation = rotation_cw_deg is not None
+        step_total = _count_steps(tool_order, use_captions, apply_cut_transitions, apply_rotation)
         step_index = 1
 
         def print_step(label: str) -> None:
@@ -593,9 +889,64 @@ def run_caption_pipeline(
         current_video = Path(video_path)
         audio_path = None
 
+        if rotation_cw_deg is not None:
+            print_step("Rotating media...")
+            rotated_ext = current_video.suffix if current_video.suffix else ".mp4"
+            rotated_output = workspace / f"{video_name}_rotated{rotated_ext}"
+            rotate_result = rotate_tool.rotate_media(
+                input_path=str(current_video),
+                output_path=str(rotated_output),
+                rotation_cw_deg=rotation_cw_deg
+            )
+            if not rotate_result.get("success"):
+                results["errors"].append(f"Rotate failed: {rotate_result.get('error')}")
+                print(f"{Fore.RED}Failed to rotate media{Style.RESET_ALL}")
+                return results
+            current_video = Path(rotate_result.get("output_path", rotated_output))
+            results["outputs"]["rotated_media"] = str(current_video)
+            audio_path = None
+
+            has_other_ops = bool(tool_order) or use_captions
+            if not has_other_ops:
+                results["outputs"]["media"] = str(current_video)
+                if not input_is_image:
+                    results["outputs"]["video"] = str(current_video)
+                results["success"] = True
+                return results
+
         for op in tool_order:
             if op == "stock":
                 print_step("Applying stock footage...")
+                if transition_request and stock_items:
+                    insert_items = [
+                        item for item in stock_items
+                        if _normalize_stock_mode(item.get("mode")) == "insert"
+                    ]
+                    if len(stock_items) == 1 and len(insert_items) == 1:
+                        transition_result = apply_insert_with_transitions(
+                            base_video=current_video,
+                            stock_item=insert_items[0],
+                            transition=transition_request,
+                            output_dir=workspace,
+                            ffmpeg_tool=ffmpeg
+                        )
+                        if not transition_result.get("success"):
+                            results["errors"].append(
+                                f"Stock footage failed: {transition_result.get('error')}"
+                            )
+                            print(f"{Fore.RED}Failed to apply stock footage with transitions{Style.RESET_ALL}")
+                            return results
+                        current_video = Path(transition_result.get("output_path", workspace / f"{video_name}_stock_transition.mp4"))
+                        results["outputs"]["stock_video"] = str(current_video)
+                        audio_path = None
+                        continue
+                    else:
+                        results["errors"].append(
+                            "Transitions with stock footage are supported only for a single insert item currently."
+                        )
+                        print(f"{Fore.RED}Stock footage transitions not supported for this setup{Style.RESET_ALL}")
+                        return results
+
                 stock_tool = StockFootageTool()
                 stock_output = workspace / f"{video_name}_stock.mp4"
                 stock_result = stock_tool.apply_stock_footage(
@@ -613,6 +964,7 @@ def run_caption_pipeline(
                 continue
 
             if op == "cut":
+                cut_source_video = Path(current_video)
                 print_step("Extracting audio for cutting...")
                 audio_path = workspace / f"{video_name}_audio_cut_src.wav"
                 audio_result = ffmpeg.extract_audio(str(current_video), str(audio_path))
@@ -662,6 +1014,34 @@ def run_caption_pipeline(
                 if cut_result.get("output_audio_path"):
                     results["outputs"]["cut_audio"] = cut_result.get("output_audio_path")
                     audio_path = Path(cut_result["output_audio_path"])
+
+                keep_segments = cut_result.get("keep_segments") or []
+                if transition_request and isinstance(keep_segments, list) and len(keep_segments) >= 2:
+                    print_step("Applying transitions...")
+                    cut_transition_path = workspace / f"{video_name}_cut_transition.mp4"
+                    transition_name = transition_request.get("name") or "Cross Dissolve"
+                    transition_duration = transition_request.get("duration")
+                    transition_item: Dict[str, Any] = {"name": transition_name}
+                    if transition_duration is not None:
+                        transition_item["duration"] = transition_duration
+
+                    transition_result = ffmpeg.apply_transitions(
+                        source_path=str(cut_source_video),
+                        segments=keep_segments,
+                        output_path=str(cut_transition_path),
+                        transitions=[transition_item],
+                        transition_duration=transition_duration
+                    )
+                    if not transition_result.get("success"):
+                        results["errors"].append(
+                            f"Transition application failed: {transition_result.get('error')}"
+                        )
+                        print(f"{Fore.RED}Failed to apply transitions{Style.RESET_ALL}")
+                        return results
+
+                    current_video = Path(transition_result.get("output_path", cut_transition_path))
+                    results["outputs"]["cut_video"] = str(current_video)
+                    audio_path = None
 
                 print(f"{Fore.GREEN}Silences removed{Style.RESET_ALL}")
 
@@ -829,9 +1209,8 @@ Examples:
             parser.error("--video is required (or use --interactive)")
         if not args.prompt:
             parser.error("--prompt is required (or use --interactive)")
-        
-        video_path = validate_video(args.video)
         prompt = args.prompt
+        video_path = validate_media(args.video, prompt)
     
     stock_items = load_stock_items(args.stock)
     result = process_video(video_path, prompt, args.output, stock_items)

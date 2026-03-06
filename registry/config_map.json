@@ -226,6 +226,40 @@
         "cut_silence",
         "remove_fillers"
       ]
+    },
+    "transitions.json": {
+      "keywords": [
+        "transition",
+        "transitions",
+        "xfade",
+        "cross dissolve",
+        "crossfade",
+        "dissolve",
+        "dip to black",
+        "dip to white",
+        "fade to gray",
+        "wipe",
+        "push",
+        "slide",
+        "cover",
+        "reveal",
+        "iris",
+        "radial",
+        "smooth",
+        "slice",
+        "blur",
+        "pixelate",
+        "zoom",
+        "squeeze",
+        "split",
+        "wind",
+        "distance fade",
+        "rectangular crop"
+      ],
+      "intents": [
+        "add_transitions",
+        "use_transitions"
+      ]
     }
   },
   "intent_to_configs": {
@@ -255,6 +289,11 @@
       "silence_cutter.json",
       "supported_formats.json",
       "supported_languages.json"
+    ],
+    "add_transitions": [
+      "transitions.json",
+      "ffmpeg_settings.json",
+      "supported_formats.json"
     ]
   },
   "default_configs": [

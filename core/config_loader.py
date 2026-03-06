@@ -121,6 +121,12 @@ class ConfigLoader:
                 "cut from", "trim from", "remove from", "delete from", "cut between",
                 "timestamps", "timecode",
                 "يعني", "اممم", "ممم", "ازالة الصمت", "إزالة الصمت"
+            ],
+            "add_transitions": [
+                "transition", "transitions", "xfade", "cross dissolve", "crossfade",
+                "dissolve", "dip to black", "dip to white", "wipe", "push", "slide",
+                "cover", "reveal", "iris", "radial", "smooth", "slice", "blur",
+                "pixelate", "zoom", "squeeze", "split", "wind", "distance fade"
             ]
         }
         
