@@ -1,0 +1,113 @@
+id: basic_captions
+name: "Basic Captions"
+description: "Transcribe speech and add styled captions to video"
+version: "1.0.0"
+tags:
+  - captions
+  - subtitles
+  - transcribe
+keywords:
+  - caption
+  - captions
+  - subtitle
+  - subtitles
+  - transcribe
+  - add captions
+  - add subtitles
+
+parameters:
+  video:
+    type: video
+    required: true
+    description: "Input video file"
+  language:
+    type: string
+    required: false
+    default: "auto"
+    description: "Language code or 'auto' for detection"
+  caption_style:
+    type: style_preset
+    required: false
+    default: "tiktok_bold"
+    description: "Caption style preset name"
+  font:
+    type: string
+    required: false
+    default: "Arial Bold"
+  font_size:
+    type: int
+    required: false
+    default: 48
+  primary_color:
+    type: string
+    required: false
+    default: "FFFFFF"
+  position:
+    type: position
+    required: false
+    default: "bottom"
+  highlight_enabled:
+    type: bool
+    required: false
+    default: true
+  highlight_type:
+    type: string
+    required: false
+    default: "word_by_word"
+
+steps:
+  - id: extract_audio
+    tool: extract_audio
+    input:
+      video_path: "{video}"
+      output_path: "{workspace}/audio.wav"
+    output:
+      audio_file: "audio_file"
+
+  - id: transcribe
+    tool: transcribe
+    depends_on:
+      - extract_audio
+    input:
+      audio_path: "{extract_audio.audio_file}"
+      language: "{language}"
+    output:
+      transcript: "transcript"
+
+  - id: align_words
+    tool: align_words
+    depends_on:
+      - transcribe
+    input:
+      transcription_result: "{transcribe.transcript}"
+    output:
+      words: "words"
+
+  - id: generate_captions
+    tool: generate_captions
+    depends_on:
+      - align_words
+    input:
+      words: "{align_words.words}"
+      output_path: "{workspace}/captions.ass"
+      style:
+        font: "{font}"
+        font_size: "{font_size}"
+        primary_color: "{primary_color}"
+        position: "{position}"
+      highlight_options:
+        enabled: "{highlight_enabled}"
+        highlight_type: "{highlight_type}"
+    output:
+      ass_file: "ass_file"
+
+  - id: render
+    tool: render_subtitles
+    depends_on:
+      - generate_captions
+    input:
+      video_path: "{video}"
+      subtitle_path: "{generate_captions.ass_file}"
+      output_path: "{output_dir}/captioned_video.mp4"
+    output:
+      video_file: "video_file"

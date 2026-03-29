@@ -63,6 +63,27 @@ Use it as authoritative context for capability and architecture questions.
 - Outputs:
   - `video_file` (file): Output video with transitions
 
+### Tool: background_audio
+- Name: Background Audio
+- Description: Add background music or sound effects with volume control, ducking, and fades
+- Module/Method: `tools.background_audio_tool.add_background_audio`
+- Category: `audio`
+- Depends on: none
+- Config files: supported_formats.json
+- Inputs:
+  - `video_path` (file, required): Path to input video
+  - `audio_path` (file, required): Path to background audio file
+  - `output_path` (file, optional): Output video path
+  - `mode` (string, optional, default=overlay): insert or overlay
+  - `background_volume` (float, optional, default=0.3):
+  - `original_volume` (float, optional, default=1.0):
+  - `ducking` (object, optional): Ducking configuration for overlay mode
+  - `fade_in_duration` (float, optional, default=1.0):
+  - `fade_out_duration` (float, optional, default=2.0):
+  - `loop` (bool, optional, default=False):
+- Outputs:
+  - `video_file` (file): Video with background audio
+
 ### Tool: extract_audio
 - Name: Extract Audio
 - Description: Extract audio track from video file for processing
@@ -108,6 +129,41 @@ Use it as authoritative context for capability and architecture questions.
   - `width` (int): Video width
   - `height` (int): Video height
   - `fps` (float): Frames per second
+
+### Tool: image_overlay
+- Name: Image Overlay
+- Description: Add images to video with position, animation, borders, and effects
+- Module/Method: `tools.image_overlay_tool.add_images`
+- Category: `video`
+- Depends on: none
+- Config files: supported_formats.json
+- Inputs:
+  - `video_path` (file, required): Path to input video
+  - `output_path` (file, optional): Output video path
+  - `images` (array, required): List of images with path, timing, position, size, and effects
+  - `codec` (string, optional, default=libx264):
+  - `preset` (string, optional, default=medium):
+  - `crf` (int, optional, default=23):
+- Outputs:
+  - `video_file` (file): Video with image overlays
+
+### Tool: image_to_video
+- Name: Image to Video
+- Description: Convert a static image into a video with configurable duration and resolution
+- Module/Method: `tools.image_to_video_tool.convert`
+- Category: `video`
+- Depends on: none
+- Config files: none
+- Inputs:
+  - `image_path` (file, required): Path to source image
+  - `output_path` (file, optional): Output video path
+  - `duration` (float, optional, default=10.0): Video duration in seconds
+  - `width` (int, optional): Output width in pixels (default: image width)
+  - `height` (int, optional): Output height in pixels (default: image height)
+  - `fps` (int, optional, default=30):
+  - `add_silent_audio` (boolean, optional, default=True):
+- Outputs:
+  - `video_file` (file): Generated video from image
 
 ### Tool: render_subtitles
 - Name: Render Subtitles
@@ -187,6 +243,32 @@ Use it as authoritative context for capability and architecture questions.
 - Outputs:
   - `video_file` (file): Video with stock footage
 
+### Tool: text_overlay
+- Name: Text Overlay
+- Description: Add styled text overlays with animations to video
+- Module/Method: `tools.text_overlay_tool.add_text`
+- Category: `video`
+- Depends on: none
+- Config files: fonts.json, colors.json, positions.json
+- Inputs:
+  - `video_path` (file, required): Path to input video
+  - `output_path` (file, optional): Output video path
+  - `text` (string, optional): Simple text content
+  - `text_segments` (array, optional): Rich text segments with individual formatting
+  - `start_time` (float, optional, default=0.0):
+  - `end_time` (float, optional):
+  - `duration` (float, optional):
+  - `font` (string, optional, default=Montserrat ExtraBold):
+  - `font_size` (int, optional, default=48):
+  - `color` (string, optional, default=FFFFFF):
+  - `position` (any, optional, default=center):
+  - `background_color` (string, optional):
+  - `animation_in` (string, optional, default=fade):
+  - `animation_out` (string, optional, default=fade):
+- Outputs:
+  - `video_file` (file): Video with text overlay
+  - `ass_file` (file): Generated ASS subtitle file
+
 ### Tool: transcribe
 - Name: Transcribe Audio
 - Description: Transcribe audio to text with timestamps using Whisper
@@ -244,9 +326,13 @@ Use it as authoritative context for capability and architecture questions.
 - ConfigLoader maps prompt keywords/intents to config files using `registry/config_map.json`.
 - Keyword-mapped config files: colors.json, ffmpeg_settings.json, fonts.json, highlight_styles.json, positions.json, silence_cutter.json, supported_formats.json, supported_languages.json, text_styles.json, transitions.json
 - Intent-to-config mapping:
+  - `add_background_audio` -> supported_formats.json
   - `add_captions` -> fonts.json, colors.json, highlight_styles.json, text_styles.json, positions.json, supported_languages.json
+  - `add_image_overlay` -> supported_formats.json
+  - `add_text_overlay` -> fonts.json, colors.json, positions.json
   - `add_transitions` -> transitions.json, ffmpeg_settings.json, supported_formats.json
   - `export_video` -> ffmpeg_settings.json, supported_formats.json
+  - `image_to_video` -> supported_formats.json, ffmpeg_settings.json
   - `remove_silence` -> silence_cutter.json, supported_formats.json, supported_languages.json
   - `style_captions` -> fonts.json, colors.json, highlight_styles.json, text_styles.json, positions.json
   - `transcribe` -> supported_languages.json

@@ -123,6 +123,10 @@ class Orchestrator:
             from tools import captions_tool
             from tools import silence_cutter_tool
             from tools import stock_footage_tool
+            from tools import text_overlay_tool
+            from tools import background_audio_tool
+            from tools import image_overlay_tool
+            from tools import image_to_video_tool
             logger.info("Tools loaded successfully")
         except ImportError as e:
             logger.warning(f"Some tools failed to load: {e}")
@@ -437,7 +441,11 @@ class Orchestrator:
             "silence_cutter": "cut_silence",
             "stock_footage": "apply_stock_footage",
             "apply_transitions": "apply_transitions",
-            "rotate_media": "rotate_media"
+            "rotate_media": "rotate_media",
+            "text_overlay": "add_text",
+            "background_audio": "add_background_audio",
+            "image_overlay": "add_images",
+            "image_to_video": "convert",
         }
         
         method_name = method_map.get(tool_type)
@@ -517,5 +525,25 @@ class Orchestrator:
         for job_exec in plan_exec.jobs.values():
             if job_exec.job.job_type == "rotate_media":
                 return job_exec.resolved_outputs.get("media_file") or job_exec.resolved_outputs.get("output_path")
-        
+
+        # Fallback: text overlay output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "text_overlay":
+                return job_exec.resolved_outputs.get("video_file") or job_exec.resolved_outputs.get("output_path")
+
+        # Fallback: background audio output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "background_audio":
+                return job_exec.resolved_outputs.get("video_file") or job_exec.resolved_outputs.get("output_path")
+
+        # Fallback: image overlay output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "image_overlay":
+                return job_exec.resolved_outputs.get("video_file") or job_exec.resolved_outputs.get("output_path")
+
+        # Fallback: image-to-video output
+        for job_exec in plan_exec.jobs.values():
+            if job_exec.job.job_type == "image_to_video":
+                return job_exec.resolved_outputs.get("video_file") or job_exec.resolved_outputs.get("output_path")
+
         return None

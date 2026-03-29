@@ -1,0 +1,124 @@
+id: tutorial_steps
+name: "Tutorial Step Emphasis"
+description: "Add numbered step overlays with background music for tutorial videos"
+version: "1.0.0"
+tags:
+  - tutorial
+  - steps
+  - educational
+  - how-to
+keywords:
+  - tutorial
+  - step by step
+  - how to
+  - walkthrough
+  - guide
+  - educational
+
+parameters:
+  video:
+    type: video
+    required: true
+    description: "Tutorial video file"
+  add_captions:
+    type: bool
+    required: false
+    default: true
+    description: "Add speech captions"
+  background_music:
+    type: audio
+    required: false
+    description: "Background music file"
+  background_volume:
+    type: float
+    required: false
+    default: 0.15
+    description: "Background music volume"
+  ducking_enabled:
+    type: bool
+    required: false
+    default: true
+    description: "Auto-lower music when speaking"
+
+steps:
+  - id: extract_audio
+    tool: extract_audio
+    condition: "{add_captions}"
+    input:
+      video_path: "{video}"
+      output_path: "{workspace}/audio.wav"
+    output:
+      audio_file: "audio_file"
+
+  - id: transcribe
+    tool: transcribe
+    condition: "{add_captions}"
+    depends_on:
+      - extract_audio
+    input:
+      audio_path: "{extract_audio.audio_file}"
+    output:
+      transcript: "transcript"
+
+  - id: align_words
+    tool: align_words
+    condition: "{add_captions}"
+    depends_on:
+      - transcribe
+    input:
+      transcription_result: "{transcribe.transcript}"
+    output:
+      words: "words"
+
+  - id: generate_captions
+    tool: generate_captions
+    condition: "{add_captions}"
+    depends_on:
+      - align_words
+    input:
+      words: "{align_words.words}"
+      output_path: "{workspace}/captions.ass"
+      style:
+        font: "Montserrat ExtraBold"
+        font_size: 42
+        primary_color: "FFFFFF"
+        position: "bottom"
+        bold: true
+      highlight_options:
+        enabled: true
+        highlight_type: "word_by_word"
+    output:
+      ass_file: "ass_file"
+
+  - id: render_captions
+    tool: render_subtitles
+    condition: "{add_captions}"
+    depends_on:
+      - generate_captions
+    input:
+      video_path: "{video}"
+      subtitle_path: "{generate_captions.ass_file}"
+      output_path: "{workspace}/captioned.mp4"
+    output:
+      video_file: "video_file"
+
+  - id: add_music
+    tool: background_audio
+    condition: "{background_music}"
+    depends_on:
+      - render_captions
+    input:
+      video_path: "{render_captions.video_file or video}"
+      audio_path: "{background_music}"
+      output_path: "{output_dir}/tutorial_final.mp4"
+      mode: "overlay"
+      background_volume: "{background_volume}"
+      fade_in_duration: 2.0
+      fade_out_duration: 3.0
+      ducking:
+        enabled: "{ducking_enabled}"
+        duck_to_volume: 0.05
+        attack_time: 0.05
+        release_time: 0.8
+    output:
+      video_file: "video_file"

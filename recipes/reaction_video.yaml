@@ -1,0 +1,135 @@
+id: reaction_video
+name: "Reaction Video Layout"
+description: "Main video with face-cam overlay, optional silence removal, and captions"
+version: "1.0.0"
+tags:
+  - reaction
+  - facecam
+  - overlay
+  - layout
+keywords:
+  - reaction video
+  - reaction
+  - face cam
+  - facecam
+  - picture in picture
+  - pip layout
+  - react to
+
+parameters:
+  base_video:
+    type: video
+    required: true
+    description: "Main content video"
+  face_cam_video:
+    type: video
+    required: true
+    description: "Face-cam / reaction video"
+  face_cam_position:
+    type: position
+    required: false
+    default: "bottom_right"
+    description: "Where to place the face cam"
+  face_cam_size:
+    type: size
+    required: false
+    default: "25%"
+    description: "Size of face cam overlay"
+  add_captions:
+    type: bool
+    required: false
+    default: true
+    description: "Add speech captions"
+  caption_style:
+    type: style_preset
+    required: false
+    default: "tiktok_bold"
+  remove_silences:
+    type: bool
+    required: false
+    default: false
+    description: "Remove silent sections"
+
+steps:
+  - id: silence_cut
+    tool: silence_cutter
+    condition: "{remove_silences}"
+    input:
+      audio_path: "{base_video}"
+      video_path: "{base_video}"
+      output_path: "{workspace}/cleaned.mp4"
+    output:
+      output_video_path: "output_video_path"
+
+  - id: overlay_face_cam
+    tool: image_overlay
+    input:
+      video_path: "{silence_cut.output_video_path or base_video}"
+      images:
+        - path: "{face_cam_video}"
+          start_time: 0
+          position: "{face_cam_position}"
+          size: "{face_cam_size}"
+          border:
+            width: 3
+            color: "FFFFFF"
+            radius: 8
+          animate_in: "fade"
+          animate_in_duration: 0.5
+      output_path: "{workspace}/with_facecam.mp4"
+    output:
+      video_file: "video_file"
+
+  - id: extract_audio
+    tool: extract_audio
+    condition: "{add_captions}"
+    depends_on:
+      - overlay_face_cam
+    input:
+      video_path: "{overlay_face_cam.video_file}"
+      output_path: "{workspace}/audio.wav"
+    output:
+      audio_file: "audio_file"
+
+  - id: transcribe
+    tool: transcribe
+    condition: "{add_captions}"
+    depends_on:
+      - extract_audio
+    input:
+      audio_path: "{extract_audio.audio_file}"
+    output:
+      transcript: "transcript"
+
+  - id: align_words
+    tool: align_words
+    condition: "{add_captions}"
+    depends_on:
+      - transcribe
+    input:
+      transcription_result: "{transcribe.transcript}"
+    output:
+      words: "words"
+
+  - id: generate_captions
+    tool: generate_captions
+    condition: "{add_captions}"
+    depends_on:
+      - align_words
+    input:
+      words: "{align_words.words}"
+      output_path: "{workspace}/captions.ass"
+    output:
+      ass_file: "ass_file"
+
+  - id: render
+    tool: render_subtitles
+    condition: "{add_captions}"
+    depends_on:
+      - generate_captions
+    input:
+      video_path: "{overlay_face_cam.video_file}"
+      subtitle_path: "{generate_captions.ass_file}"
+      output_path: "{output_dir}/reaction_video.mp4"
+    output:
+      video_file: "video_file"

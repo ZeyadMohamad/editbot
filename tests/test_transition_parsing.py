@@ -48,3 +48,19 @@ def test_parse_transition_duration_range_ignores_cut_ranges():
 def test_extract_transition_duration_range_phrase():
     prompt = "apply a cross dissolve transition from duration 0.000s to 0.500s"
     assert extract_transition_duration(prompt) == 0.5
+
+
+def test_parse_transition_beginning_applies_in_only():
+    prompt = "Add transition cross dissolve at the beginning of the stock footage."
+    transition = parse_transition_from_prompt(prompt, _DummyConfigLoader())
+    assert transition is not None
+    assert transition["apply_in"] is True
+    assert transition["apply_out"] is False
+
+
+def test_parse_transition_end_applies_out_only():
+    prompt = "Add transition cross dissolve at the end of the stock footage."
+    transition = parse_transition_from_prompt(prompt, _DummyConfigLoader())
+    assert transition is not None
+    assert transition["apply_in"] is False
+    assert transition["apply_out"] is True

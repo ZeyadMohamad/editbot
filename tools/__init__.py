@@ -15,6 +15,10 @@ from tools.whisperx_tool import WhisperXTool
 from tools.captions_tool import CaptionsTool
 from tools.silence_cutter_tool import SilenceCutterTool
 from tools.stock_footage_tool import StockFootageTool
+from tools.text_overlay_tool import TextOverlayTool
+from tools.background_audio_tool import BackgroundAudioTool
+from tools.image_overlay_tool import ImageOverlayTool
+from tools.image_to_video_tool import ImageToVideoTool
 
 # Export for easy access
 __all__ = [
@@ -28,6 +32,10 @@ __all__ = [
     "CaptionsTool",
     "SilenceCutterTool",
     "StockFootageTool",
+    "TextOverlayTool",
+    "BackgroundAudioTool",
+    "ImageOverlayTool",
+    "ImageToVideoTool",
 ]
 
 

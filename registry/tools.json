@@ -520,6 +520,274 @@
         "supported_formats.json",
         "supported_languages.json"
       ]
+    },
+    "text_overlay": {
+      "name": "Text Overlay",
+      "description": "Add styled text overlays with animations to video",
+      "module": "tools.text_overlay_tool",
+      "class": "TextOverlayTool",
+      "method": "add_text",
+      "category": "video",
+      "inputs": {
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to input video"
+        },
+        "output_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output video path"
+        },
+        "text": {
+          "type": "string",
+          "required": false,
+          "description": "Simple text content"
+        },
+        "text_segments": {
+          "type": "array",
+          "required": false,
+          "description": "Rich text segments with individual formatting"
+        },
+        "start_time": {
+          "type": "float",
+          "required": false,
+          "default": 0.0
+        },
+        "end_time": {
+          "type": "float",
+          "required": false
+        },
+        "duration": {
+          "type": "float",
+          "required": false
+        },
+        "font": {
+          "type": "string",
+          "required": false,
+          "default": "Montserrat ExtraBold"
+        },
+        "font_size": {
+          "type": "int",
+          "required": false,
+          "default": 48
+        },
+        "color": {
+          "type": "string",
+          "required": false,
+          "default": "FFFFFF"
+        },
+        "position": {
+          "type": "any",
+          "required": false,
+          "default": "center"
+        },
+        "background_color": {
+          "type": "string",
+          "required": false
+        },
+        "animation_in": {
+          "type": "string",
+          "required": false,
+          "default": "fade"
+        },
+        "animation_out": {
+          "type": "string",
+          "required": false,
+          "default": "fade"
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Video with text overlay"
+        },
+        "ass_file": {
+          "type": "file",
+          "description": "Generated ASS subtitle file"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "fonts.json",
+        "colors.json",
+        "positions.json"
+      ]
+    },
+    "background_audio": {
+      "name": "Background Audio",
+      "description": "Add background music or sound effects with volume control, ducking, and fades",
+      "module": "tools.background_audio_tool",
+      "class": "BackgroundAudioTool",
+      "method": "add_background_audio",
+      "category": "audio",
+      "inputs": {
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to input video"
+        },
+        "audio_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to background audio file"
+        },
+        "output_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output video path"
+        },
+        "mode": {
+          "type": "string",
+          "required": false,
+          "default": "overlay",
+          "description": "insert or overlay"
+        },
+        "background_volume": {
+          "type": "float",
+          "required": false,
+          "default": 0.3
+        },
+        "original_volume": {
+          "type": "float",
+          "required": false,
+          "default": 1.0
+        },
+        "ducking": {
+          "type": "object",
+          "required": false,
+          "description": "Ducking configuration for overlay mode"
+        },
+        "fade_in_duration": {
+          "type": "float",
+          "required": false,
+          "default": 1.0
+        },
+        "fade_out_duration": {
+          "type": "float",
+          "required": false,
+          "default": 2.0
+        },
+        "loop": {
+          "type": "bool",
+          "required": false,
+          "default": false
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Video with background audio"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "supported_formats.json"
+      ]
+    },
+    "image_overlay": {
+      "name": "Image Overlay",
+      "description": "Add images to video with position, animation, borders, and effects",
+      "module": "tools.image_overlay_tool",
+      "class": "ImageOverlayTool",
+      "method": "add_images",
+      "category": "video",
+      "inputs": {
+        "video_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to input video"
+        },
+        "output_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output video path"
+        },
+        "images": {
+          "type": "array",
+          "required": true,
+          "description": "List of images with path, timing, position, size, and effects"
+        },
+        "codec": {
+          "type": "string",
+          "required": false,
+          "default": "libx264"
+        },
+        "preset": {
+          "type": "string",
+          "required": false,
+          "default": "medium"
+        },
+        "crf": {
+          "type": "int",
+          "required": false,
+          "default": 23
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Video with image overlays"
+        }
+      },
+      "depends_on": [],
+      "config_files": [
+        "supported_formats.json"
+      ]
+    },
+    "image_to_video": {
+      "name": "Image to Video",
+      "description": "Convert a static image into a video with configurable duration and resolution",
+      "module": "tools.image_to_video_tool",
+      "class": "ImageToVideoTool",
+      "method": "convert",
+      "category": "video",
+      "inputs": {
+        "image_path": {
+          "type": "file",
+          "required": true,
+          "description": "Path to source image"
+        },
+        "output_path": {
+          "type": "file",
+          "required": false,
+          "description": "Output video path"
+        },
+        "duration": {
+          "type": "float",
+          "required": false,
+          "default": 10.0,
+          "description": "Video duration in seconds"
+        },
+        "width": {
+          "type": "int",
+          "required": false,
+          "description": "Output width in pixels (default: image width)"
+        },
+        "height": {
+          "type": "int",
+          "required": false,
+          "description": "Output height in pixels (default: image height)"
+        },
+        "fps": {
+          "type": "int",
+          "required": false,
+          "default": 30
+        },
+        "add_silent_audio": {
+          "type": "boolean",
+          "required": false,
+          "default": true
+        }
+      },
+      "outputs": {
+        "video_file": {
+          "type": "file",
+          "description": "Generated video from image"
+        }
+      },
+      "depends_on": [],
+      "config_files": []
     }
   },
   "categories": {

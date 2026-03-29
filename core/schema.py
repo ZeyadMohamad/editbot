@@ -17,6 +17,10 @@ class JobType(str, Enum):
     SILENCE_CUTTER = "silence_cutter"
     STOCK_FOOTAGE = "stock_footage"
     APPLY_TRANSITIONS = "apply_transitions"
+    TEXT_OVERLAY = "text_overlay"
+    BACKGROUND_AUDIO = "background_audio"
+    IMAGE_OVERLAY = "image_overlay"
+    IMAGE_TO_VIDEO = "image_to_video"
 
 
 class CaptionStyle(BaseModel):

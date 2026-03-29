@@ -102,6 +102,11 @@ ACTION_INTENTS = {
     "video_info",
     "transcribe_only",
     "captions_only",
+    "text_overlay",
+    "background_audio",
+    "image_overlay",
+    "image_to_video",
+    "recipe_match",
 }
 
 ACTION_ROUTE_KEYWORDS = (
@@ -126,6 +131,38 @@ ACTION_ROUTE_KEYWORDS = (
     "extract audio",
     "video info",
     "metadata",
+    # New tool keywords
+    "text overlay",
+    "add text",
+    "title card",
+    "lower third",
+    "typewriter",
+    "background music",
+    "add music",
+    "sound effect",
+    "add audio",
+    "add image",
+    "add logo",
+    "watermark",
+    "picture in picture",
+    "pip",
+    # Image-to-video keywords
+    "image to video",
+    "turn image into video",
+    "make video from image",
+    "image background",
+    "static image",
+    "convert image",
+    # Recipe keywords
+    "reaction video",
+    "reaction",
+    "facecam",
+    "face cam",
+    "end screen",
+    "outro",
+    "tutorial",
+    "how to",
+    "walkthrough",
 )
 
 EDIT_OPERATION_KEYWORDS = (
@@ -166,6 +203,34 @@ EDIT_OPERATION_KEYWORDS = (
     "splice",
     "insert",
     "overlay",
+    # New tool keywords
+    "text overlay",
+    "add text",
+    "title card",
+    "lower third",
+    "typewriter",
+    "background music",
+    "add music",
+    "sound effect",
+    "add audio",
+    "add image",
+    "add logo",
+    "watermark",
+    "picture in picture",
+    "pip",
+    "image to video",
+    "turn image into video",
+    "make video from image",
+    "image background",
+    "static image",
+    "convert image",
+    "facecam",
+    "face cam",
+    "reaction video",
+    "reaction",
+    "end screen",
+    "outro",
+    "tutorial",
 )
 
 VIDEO_INFO_METRIC_KEYWORDS = (
@@ -292,6 +357,35 @@ def _fallback_intent(message: str) -> Dict[str, Any]:
 
     if any(k in text for k in ["srt", "vtt", "subtitle file", "captions file", "ass file"]):
         return {"intent": "captions_only", "route": "implementation", "confidence": 0.75}
+
+    # New tool intents
+    if any(k in text for k in ["text overlay", "add text", "title card", "lower third", "typewriter"]):
+        return {"intent": "text_overlay", "route": "implementation", "confidence": 0.8}
+
+    if any(k in text for k in ["background music", "add music", "sound effect", "add audio"]):
+        return {"intent": "background_audio", "route": "implementation", "confidence": 0.8}
+
+    if any(k in text for k in ["add image", "add logo", "watermark", "picture in picture", "pip"]):
+        return {"intent": "image_overlay", "route": "implementation", "confidence": 0.8}
+
+    # Image-to-video intent
+    if any(k in text for k in ["image to video", "turn image into video", "make video from image",
+                                 "convert image to video", "image background video",
+                                 "static image to video"]):
+        return {"intent": "image_to_video", "route": "implementation", "confidence": 0.85}
+
+    # Recipe-level intent detection
+    if any(k in text for k in ["reaction video", "reaction", "facecam", "face cam"]):
+        return {"intent": "recipe_match", "route": "implementation", "confidence": 0.85,
+                "recipe_id": "reaction_video"}
+
+    if any(k in text for k in ["end screen", "outro", "end card", "end slate"]):
+        return {"intent": "recipe_match", "route": "implementation", "confidence": 0.85,
+                "recipe_id": "youtube_end_screen"}
+
+    if any(k in text for k in ["tutorial", "how to", "walkthrough", "step by step"]):
+        return {"intent": "recipe_match", "route": "implementation", "confidence": 0.8,
+                "recipe_id": "tutorial_steps"}
 
     if any(k in text for k in ACTION_ROUTE_KEYWORDS):
         return {"intent": "edit_request", "route": "implementation", "confidence": 0.7}

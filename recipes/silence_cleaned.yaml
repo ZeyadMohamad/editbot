@@ -1,0 +1,76 @@
+id: silence_cleaned
+name: "Silence & Filler Removal"
+description: "Remove silence and filler words from video for a tighter edit"
+version: "1.0.0"
+tags:
+  - silence
+  - filler
+  - cleanup
+  - trim
+keywords:
+  - remove silence
+  - cut silence
+  - remove fillers
+  - filler words
+  - dead air
+  - remove pauses
+  - clean up audio
+  - tight edit
+
+parameters:
+  video:
+    type: video
+    required: true
+    description: "Input video file"
+  threshold_db:
+    type: float
+    required: false
+    default: -35.0
+    description: "Silence detection threshold in dB"
+  min_silence_duration:
+    type: float
+    required: false
+    default: 0.3
+    description: "Minimum silence duration to cut (seconds)"
+  padding:
+    type: float
+    required: false
+    default: 0.05
+    description: "Padding to keep around cuts (seconds)"
+  filler_detection:
+    type: bool
+    required: false
+    default: true
+    description: "Enable filler word detection (um, uh, etc.)"
+  filler_language:
+    type: string
+    required: false
+    default: "auto"
+    description: "Language for filler detection"
+
+steps:
+  - id: extract_audio
+    tool: extract_audio
+    input:
+      video_path: "{video}"
+      output_path: "{workspace}/audio.wav"
+    output:
+      audio_file: "audio_file"
+
+  - id: cut_silence
+    tool: silence_cutter
+    depends_on:
+      - extract_audio
+    input:
+      audio_path: "{extract_audio.audio_file}"
+      video_path: "{video}"
+      output_path: "{output_dir}/cleaned_video.mp4"
+      threshold_db: "{threshold_db}"
+      min_silence_duration: "{min_silence_duration}"
+      padding: "{padding}"
+      filler_detection: "{filler_detection}"
+      filler_language: "{filler_language}"
+    output:
+      output_video_path: "output_video_path"
+      cut_list_path: "cut_list_path"
+    checkpoint: true

@@ -1064,7 +1064,8 @@ async def chat_stream(payload: ChatRequest):
             return
 
         # Handle action intents - these need processing, not streaming
-        action_intents = {"edit_request", "extract_audio", "video_info", "transcribe_only", "captions_only"}
+        action_intents = {"edit_request", "extract_audio", "video_info", "transcribe_only", "captions_only",
+                          "add_image_overlay", "add_text_overlay", "add_background_audio", "image_to_video"}
         if intent in action_intents:
             data = json.dumps({
                 "type": "action",
@@ -1158,7 +1159,8 @@ async def chat_request(payload: ChatRequest) -> Dict[str, Any]:
             "intent": intent
         }
 
-    action_intents = {"edit_request", "extract_audio", "video_info", "transcribe_only", "captions_only"}
+    action_intents = {"edit_request", "extract_audio", "video_info", "transcribe_only", "captions_only",
+                      "add_image_overlay", "add_text_overlay", "add_background_audio", "image_to_video"}
     if intent in action_intents:
         resolved = _resolve_video(payload.video_id, payload.video_path, payload.session_id)
         path = resolved.get("path")
@@ -1257,7 +1259,7 @@ async def chat_request(payload: ChatRequest) -> Dict[str, Any]:
                 result["reply"] = "Captions file generated."
             return {**result, "intent": intent}
 
-        if intent == "edit_request":
+        if intent in ("edit_request", "add_image_overlay", "add_text_overlay", "add_background_audio"):
             result = await _run_edit_pipeline(
                 payload.message,
                 path,

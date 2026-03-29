@@ -1,0 +1,118 @@
+id: youtube_end_screen
+name: "YouTube End Screen Builder"
+description: "Add end screen elements with images, text, and background music"
+version: "1.0.0"
+tags:
+  - youtube
+  - end screen
+  - outro
+  - subscribe
+keywords:
+  - end screen
+  - outro
+  - end card
+  - subscribe button
+  - next video
+  - end slate
+
+parameters:
+  main_video:
+    type: video
+    required: true
+    description: "Main video file"
+  end_duration:
+    type: float
+    required: false
+    default: 10.0
+    description: "Duration of end screen in seconds"
+  subscribe_btn:
+    type: image
+    required: false
+    description: "Subscribe button image"
+  next_video_thumb:
+    type: image
+    required: false
+    description: "Next video thumbnail image"
+  channel_logo:
+    type: image
+    required: false
+    description: "Channel logo image"
+  background_music:
+    type: audio
+    required: false
+    description: "Outro background music"
+  outro_text:
+    type: string
+    required: false
+    default: "Thanks for watching!"
+    description: "Outro text overlay"
+
+steps:
+  - id: add_end_images
+    tool: image_overlay
+    input:
+      video_path: "{main_video}"
+      output_path: "{workspace}/with_end_screen.mp4"
+      images:
+        - path: "{subscribe_btn}"
+          start_time: -1
+          duration: "{end_duration}"
+          position: "bottom_center"
+          size: "20%"
+          animate_in: "slide_up"
+          animate_in_duration: 0.5
+        - path: "{next_video_thumb}"
+          start_time: -1
+          duration: "{end_duration}"
+          position: "center_right"
+          size: "35%"
+          border:
+            width: 3
+            color: "FFFFFF"
+            radius: 8
+          animate_in: "scale"
+          animate_in_duration: 0.5
+        - path: "{channel_logo}"
+          start_time: -1
+          duration: "{end_duration}"
+          position: "top_center"
+          size: "15%"
+          opacity: 0.9
+          animate_in: "fade"
+    output:
+      video_file: "video_file"
+
+  - id: add_outro_text
+    tool: text_overlay
+    condition: "{outro_text}"
+    depends_on:
+      - add_end_images
+    input:
+      video_path: "{add_end_images.video_file}"
+      output_path: "{workspace}/with_text.mp4"
+      text: "{outro_text}"
+      font_size: 56
+      color: "FFFFFF"
+      position: "center"
+      animation_in: "fade"
+      animation_in_duration: 1.0
+      start_time: -1
+      duration: "{end_duration}"
+    output:
+      video_file: "video_file"
+
+  - id: add_outro_music
+    tool: background_audio
+    condition: "{background_music}"
+    depends_on:
+      - add_outro_text
+    input:
+      video_path: "{add_outro_text.video_file or add_end_images.video_file}"
+      audio_path: "{background_music}"
+      output_path: "{output_dir}/final_with_endscreen.mp4"
+      mode: "overlay"
+      background_volume: 0.25
+      fade_in_duration: 1.0
+      fade_out_duration: 2.0
+    output:
+      video_file: "video_file"

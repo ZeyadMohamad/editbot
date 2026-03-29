@@ -471,6 +471,27 @@ def _is_image_path(path: str) -> bool:
     return Path(path).suffix.lower() in IMAGE_EXTENSIONS
 
 
+# Regex to extract video duration from prompts like "make a 15 second video", "30s video", "1 minute"
+_DURATION_REGEX = re.compile(
+    r'(\d+(?:\.\d+)?)\s*(?:-?\s*)?(second|sec|s|minute|min|m)\b',
+    re.IGNORECASE,
+)
+
+
+def _parse_video_duration_from_prompt(prompt: str) -> Optional[float]:
+    """Extract desired video duration from prompt text. Returns seconds or None."""
+    if not prompt:
+        return None
+    m = _DURATION_REGEX.search(prompt)
+    if not m:
+        return None
+    value = float(m.group(1))
+    unit = m.group(2).lower()
+    if unit in ("minute", "min", "m"):
+        value *= 60.0
+    return value if value > 0 else None
+
+
 def rotation_mentioned(prompt: str) -> bool:
     prompt_lower = (prompt or "").lower()
     return any(tok in prompt_lower for tok in ["rotate", "rotation", "clockwise", "counterclockwise", "anticlockwise"])
@@ -484,6 +505,29 @@ def parse_rotation_from_prompt(prompt: str) -> Optional[float]:
         return parse_rotation_cw_degrees(prompt)
     except Exception:
         return None
+
+
+def _parse_transition_targets(prompt_lower: str) -> Dict[str, bool]:
+    if not prompt_lower:
+        return {"apply_in": True, "apply_out": False}
+
+    start_hint = bool(re.search(
+        r"\b(?:at|in|on)\s+the\s+(?:very\s+)?(?:beginning|start)\b|\b(?:beginning|start)\s+of\b|\bfade\s*in\b",
+        prompt_lower
+    ))
+    end_hint = bool(re.search(
+        r"\b(?:at|in|on)\s+the\s+(?:very\s+)?(?:end|ending)\b|\b(?:end|ending)\s+of\b|\bfade\s*out\b",
+        prompt_lower
+    ))
+
+    if start_hint and not end_hint:
+        return {"apply_in": True, "apply_out": False}
+    if end_hint and not start_hint:
+        return {"apply_in": False, "apply_out": True}
+    if start_hint and end_hint:
+        return {"apply_in": True, "apply_out": True}
+    # Default to transition-in for generic requests like "add cross dissolve".
+    return {"apply_in": True, "apply_out": False}
 
 
 def parse_transition_from_prompt(prompt: str, config_loader) -> Optional[Dict[str, Any]]:
@@ -543,7 +587,13 @@ def parse_transition_from_prompt(prompt: str, config_loader) -> Optional[Dict[st
             if parsed_duration is not None and parsed_duration > 0:
                 duration = parsed_duration
 
-    return {"name": name, "duration": duration}
+    targets = _parse_transition_targets(prompt_lower)
+    return {
+        "name": name,
+        "duration": duration,
+        "apply_in": targets["apply_in"],
+        "apply_out": targets["apply_out"],
+    }
 
 
 def apply_insert_with_transitions(
@@ -844,22 +894,43 @@ def run_caption_pipeline(
 
     input_is_image = _is_image_path(str(video_path))
     if input_is_image:
-        disallowed = []
-        if bool(stock_items):
-            disallowed.append("stock footage")
-        if use_silence_cut:
-            disallowed.append("silence cutting")
-        if use_captions:
-            disallowed.append("captions")
-        if transition_request:
-            disallowed.append("transitions")
-        if disallowed:
-            results["errors"].append(
-                f"Image input currently supports rotate-only workflow. Unsupported with image: {', '.join(disallowed)}."
+        needs_video = bool(stock_items) or use_captions or bool(transition_request)
+        if needs_video:
+            # Auto-convert image to video so downstream tools can operate
+            from tools.image_to_video_tool import ImageToVideoTool
+            img2vid = ImageToVideoTool()
+
+            # Try to determine duration: prompt hint → stock time ranges → default 10s
+            vid_duration = _parse_video_duration_from_prompt(prompt)
+            if vid_duration is None and stock_items:
+                max_end = max(
+                    (item.get("end_time") or item.get("start_time", 0) for item in stock_items),
+                    default=0,
+                )
+                if max_end > 0:
+                    vid_duration = max_end + 1.0
+            if vid_duration is None:
+                vid_duration = 10.0
+
+            canvas_output = workspace / f"{video_name}_canvas.mp4"
+            print(f"\n{Fore.CYAN}Converting image to {vid_duration:.1f}s video canvas...{Style.RESET_ALL}")
+            canvas_result = img2vid.convert(
+                image_path=str(video_path),
+                output_path=str(canvas_output),
+                duration=vid_duration,
             )
+            if not canvas_result.success:
+                results["errors"].append(f"Image-to-video conversion failed: {canvas_result.error}")
+                return results
+            video_path = str(canvas_output)
+            results["outputs"]["canvas_video"] = str(canvas_output)
+            input_is_image = False
+            print(f"{Fore.GREEN}Canvas video created: {canvas_output.name}{Style.RESET_ALL}")
+        elif use_silence_cut:
+            results["errors"].append("Silence cutting is not applicable to image inputs.")
             return results
-        if not rotation_requested:
-            results["errors"].append("Image input requires a rotate request (for example: 'rotate right 2 times').")
+        elif not rotation_requested:
+            results["errors"].append("Image input requires a rotate request or additional operations (captions, stock footage, etc.).")
             return results
     elif rotation_requested and rotation_cw_deg is None:
         results["errors"].append(
@@ -917,11 +988,96 @@ def run_caption_pipeline(
         for op in tool_order:
             if op == "stock":
                 print_step("Applying stock footage...")
+
+                # Route image-only overlays to ImageOverlayTool for better positioning/animation
+                all_images = stock_items and all(
+                    _is_image_path(str(item.get("path", "")))
+                    and _normalize_stock_mode(item.get("mode")) == "overlay"
+                    for item in stock_items
+                )
+                if all_images:
+                    from tools.image_overlay_tool import ImageOverlayTool
+                    image_tool = ImageOverlayTool()
+                    image_items = []
+                    for item in stock_items:
+                        img_item = {
+                            "path": item["path"],
+                            "start_time": item.get("start_time", 0),
+                            "end_time": item.get("end_time"),
+                            "duration": item.get("end_time", 0) - item.get("start_time", 0) if item.get("end_time") else None,
+                        }
+                        if item.get("x") is not None:
+                            img_item["x"] = item["x"]
+                        if item.get("y") is not None:
+                            img_item["y"] = item["y"]
+                        if item.get("width"):
+                            img_item["width"] = item["width"]
+                        if item.get("height"):
+                            img_item["height"] = item["height"]
+                        if item.get("position"):
+                            img_item["position"] = item["position"]
+                        if item.get("size") and not (item.get("width") and item.get("height")):
+                            # Pass size preset as 'size' for _resolve_size to handle;
+                            # don't override when explicit width/height are already set
+                            from tools.stock_footage_tool import SIZE_PRESETS
+                            size_val = item["size"]
+                            if isinstance(size_val, str) and size_val in SIZE_PRESETS:
+                                img_item["size"] = SIZE_PRESETS[size_val]
+                            else:
+                                img_item["size"] = size_val
+                        if transition_request:
+                            t_dur = _parse_timecode_seconds(transition_request.get("duration"))
+                            if t_dur is None or t_dur <= 0:
+                                t_dur = 0.5
+                            img_item["animate_in"] = transition_request.get("name", "fade").lower()
+                            if img_item["animate_in"] not in ("fade", "slide_up", "slide_down", "slide_left", "slide_right"):
+                                img_item["animate_in"] = "fade"
+                            img_item["animate_in_duration"] = t_dur
+                            if transition_request.get("apply_out"):
+                                img_item["animate_out"] = "fade"
+                                img_item["animate_out_duration"] = t_dur
+                        image_items.append(img_item)
+
+                    image_output = workspace / f"{video_name}_image_overlay.mp4"
+                    image_result = image_tool.add_images(
+                        video_path=str(current_video),
+                        images=image_items,
+                        output_path=str(image_output)
+                    )
+                    if not image_result.success:
+                        results["errors"].append(f"Image overlay failed: {image_result.error}")
+                        print(f"{Fore.RED}Failed to apply image overlay{Style.RESET_ALL}")
+                        return results
+                    current_video = Path(image_result.data.get("output_path", image_output))
+                    results["outputs"]["stock_video"] = str(current_video)
+                    audio_path = None
+                    continue
+
                 if transition_request and stock_items:
                     insert_items = [
                         item for item in stock_items
                         if _normalize_stock_mode(item.get("mode")) == "insert"
                     ]
+                    overlay_items = [
+                        item for item in stock_items
+                        if _normalize_stock_mode(item.get("mode")) == "overlay"
+                    ]
+
+                    # For overlay-mode items, inject fade transition parameters
+                    if overlay_items:
+                        t_name = (transition_request.get("name") or transition_request.get("type") or "fade").lower()
+                        t_dur = _parse_timecode_seconds(transition_request.get("duration"))
+                        if t_dur is None or t_dur <= 0:
+                            t_dur = 0.5
+                        for item in stock_items:
+                            if _normalize_stock_mode(item.get("mode")) == "overlay":
+                                if transition_request.get("apply_in", True):
+                                    item["transition"] = t_name
+                                if transition_request.get("apply_out"):
+                                    item["transition_out"] = t_name
+                                item["transition_duration"] = t_dur
+
+                    # For single insert item, use xfade clip-based transitions
                     if len(stock_items) == 1 and len(insert_items) == 1:
                         transition_result = apply_insert_with_transitions(
                             base_video=current_video,
@@ -940,12 +1096,8 @@ def run_caption_pipeline(
                         results["outputs"]["stock_video"] = str(current_video)
                         audio_path = None
                         continue
-                    else:
-                        results["errors"].append(
-                            "Transitions with stock footage are supported only for a single insert item currently."
-                        )
-                        print(f"{Fore.RED}Stock footage transitions not supported for this setup{Style.RESET_ALL}")
-                        return results
+                    # For overlay-mode or mixed items, fall through to stock tool
+                    # (fade params already injected above)
 
                 stock_tool = StockFootageTool()
                 stock_output = workspace / f"{video_name}_stock.mp4"

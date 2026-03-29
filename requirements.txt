@@ -36,3 +36,4 @@ peft>=0.10.0
 evaluate>=0.4.2
 jiwer>=3.0.3
 soundfile>=0.12.1
+pyyaml

@@ -58,6 +58,20 @@ PATH_REGEX = re.compile(
     r"([A-Za-z]:\\[^\n]*?\.(?:mp4|mov|mkv|avi|webm|m4v|mpeg|mpg|3gp|ts|mts|png|jpg|jpeg|webp|wepb|bmp|gif))",
     re.IGNORECASE
 )
+# Fallback: match bare filenames like "OIP.webp" or "clip.mp4" (no drive letter required)
+FILENAME_REGEX = re.compile(
+    r"(?:^|[\s\"'(])([A-Za-z0-9_\-.]+\.(?:mp4|mov|mkv|avi|webm|m4v|mpeg|mpg|3gp|ts|mts|png|jpg|jpeg|webp|wepb|bmp|gif))\b",
+    re.IGNORECASE
+)
+
+COORDINATE_REGEX = re.compile(
+    r"(?:coordinates?\s*[:=]?\s*)?(?:x\s*[:=]\s*(\d+)\s*[,;]?\s*(?:y|t)\s*[:=]\s*(\d+))",
+    re.IGNORECASE
+)
+DIMENSION_REGEX = re.compile(
+    r"(?:(?:width|w)\s*[:=]\s*(\d+)\s*[,;]?\s*(?:height|h)\s*[:=]\s*(\d+)|(\d+)\s*[xX×]\s*(\d+)\s*(?:px|pixels?)?)",
+    re.IGNORECASE
+)
 
 SIZE_PRESETS = {
     "full": 1.0,
@@ -359,6 +373,35 @@ def _infer_size_from_text(text: str) -> Optional[str]:
     return None
 
 
+def _extract_coordinates(text: str) -> Tuple[Optional[int], Optional[int]]:
+    """Extract x/y pixel coordinates from text like 'x: 364, y: 993' or 'coordinates x:364 t:993'."""
+    if not text:
+        return None, None
+    match = COORDINATE_REGEX.search(text)
+    if match:
+        try:
+            return int(match.group(1)), int(match.group(2))
+        except (ValueError, TypeError):
+            pass
+    return None, None
+
+
+def _extract_dimensions(text: str) -> Tuple[Optional[int], Optional[int]]:
+    """Extract width/height from text like 'width: 200, height: 300' or '200x300'."""
+    if not text:
+        return None, None
+    match = DIMENSION_REGEX.search(text)
+    if match:
+        try:
+            if match.group(1) and match.group(2):
+                return int(match.group(1)), int(match.group(2))
+            if match.group(3) and match.group(4):
+                return int(match.group(3)), int(match.group(4))
+        except (ValueError, TypeError):
+            pass
+    return None, None
+
+
 def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], List[str]]:
     if not prompt:
         return [], []
@@ -367,11 +410,17 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
     prompt_text = prompt.strip()
     prompt_lower = prompt_text.lower()
 
+    # Try full Windows paths first, then bare filenames as fallback
     paths = [
         _clean_path(p)
         for p in PATH_REGEX.findall(prompt_text)
     ]
     paths = [p for p in paths if p]
+
+    if not paths:
+        filename_matches = FILENAME_REGEX.findall(prompt_text)
+        paths = [_clean_path(p) for p in filename_matches]
+        paths = [p for p in paths if p]
 
     has_intent = bool(paths) or any(k in prompt_lower for k in STOCK_KEYWORDS)
     if not has_intent:
@@ -381,20 +430,30 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
         errors.append("No stock file path found in prompt.")
         return [], errors
 
-    # Extract source range (inside stock clip) first to avoid confusing with main range
+    # Extract placement time range FIRST from the full prompt
+    # This must happen before source range extraction to avoid
+    # SOURCE_RANGE_REGEX eating "stock footage from 25.7s to 29s"
+    global_start, global_end, placement_span = _find_time_range(prompt_text)
+
+    # Extract source range (inside stock clip), skipping any span already
+    # claimed as the placement range
     source_start = source_end = None
-    source_match = SOURCE_RANGE_REGEX.search(prompt_text) or SOURCE_RANGE_POST_REGEX.search(prompt_text)
-    scrubbed_prompt = prompt_text
+    scrubbed_for_source = prompt_text
+    if placement_span:
+        scrubbed_for_source = (
+            prompt_text[:placement_span[0]] + " " + prompt_text[placement_span[1]:]
+        )
+    source_match = (
+        SOURCE_RANGE_REGEX.search(scrubbed_for_source)
+        or SOURCE_RANGE_POST_REGEX.search(scrubbed_for_source)
+    )
     if source_match:
         source_start = _parse_timecode_to_seconds(source_match.group(1))
         source_end = _parse_timecode_to_seconds(source_match.group(2))
         if source_start is not None and source_end is not None and source_end < source_start:
             source_start, source_end = source_end, source_start
-        start_idx, end_idx = source_match.span()
-        scrubbed_prompt = prompt_text[:start_idx] + " " + prompt_text[end_idx:]
 
     clauses = _split_prompt_clauses(prompt_text)
-    global_start, global_end, _span = _find_time_range(scrubbed_prompt)
 
     mode = "overlay"
     if any(k in prompt_lower for k in ["insert", "cutaway", "replace", "splice"]):
@@ -407,6 +466,9 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
     size_match = SIZE_REGEX.search(prompt_text)
     if size_match:
         size = size_match.group(1).strip().lower()
+
+    coord_x, coord_y = _extract_coordinates(prompt_text)
+    dim_w, dim_h = _extract_dimensions(prompt_text)
 
     items: List[Dict[str, Any]] = []
     missing_time_range = False
@@ -445,6 +507,14 @@ def parse_stock_items_from_prompt(prompt: str) -> Tuple[List[Dict[str, Any]], Li
             item["source_start"] = source_start
         if source_end is not None:
             item["source_end"] = source_end
+        if coord_x is not None:
+            item["x"] = coord_x
+        if coord_y is not None:
+            item["y"] = coord_y
+        if dim_w is not None:
+            item["width"] = dim_w
+        if dim_h is not None:
+            item["height"] = dim_h
         if position:
             item["position"] = position
         if size:
@@ -674,6 +744,7 @@ class StockFootageTool(BaseTool):
         y_raw = item.get("y")
         x = _parse_offset(x_raw, base_w) if x_raw is not None else None
         y = _parse_offset(y_raw, base_h) if y_raw is not None else None
+        has_explicit_xy = x is not None and y is not None
 
         if x is None or y is None:
             position = _normalize_position(item.get("position") or item.get("pos"))
@@ -714,17 +785,58 @@ class StockFootageTool(BaseTool):
                 stock_input_args += ["-ss", _fmt_time(source_start)]
             stock_input_args += ["-t", _fmt_time(overlay_duration), "-i", stock_path]
 
+        # Transition / fade support
+        fade_in_dur = 0.0
+        fade_out_dur = 0.0
+        transition = item.get("transition") or item.get("animate_in")
+        transition_out = item.get("transition_out") or item.get("animate_out")
+        try:
+            transition_dur = float(item.get("transition_duration", 0.5) or 0.5)
+        except Exception:
+            transition_dur = 0.5
+        transition_dur = max(0.0, transition_dur)
+        if transition and str(transition).lower() in ("fade", "dissolve", "cross dissolve"):
+            fade_in_dur = transition_dur
+        if transition_out and str(transition_out).lower() in ("fade", "dissolve", "cross dissolve"):
+            fade_out_dur = transition_dur
+
         filter_parts = []
         scale_part = ""
         scale_w = int(width) if width is not None else -1
         scale_h = int(height) if height is not None else -1
         if scale_w > 0 or scale_h > 0:
             scale_part = f"scale={scale_w}:{scale_h},"
+
+        # Build overlay input filter chain with format=rgba for alpha support.
+        #
+        # Important: fade timings are relative to the stock clip starting at t=0.
+        # If we shift PTS first (setpts), then a fade-out starting at e.g. 2.8s
+        # would already be "fully faded out" when the overlay appears at 25.7s.
+        # So apply fades BEFORE shifting PTS into the base timeline.
+        ov_filters = f"{scale_part}format=rgba"
+
+        # Add fade-in/out alpha transitions (relative to stock clip timeline)
+        if fade_in_dur > 0:
+            ov_filters += f",fade=t=in:st=0:d={fade_in_dur}:alpha=1"
+        if fade_out_dur > 0:
+            fade_out_start = max(0.0, overlay_duration - fade_out_dur)
+            ov_filters += f",fade=t=out:st={fade_out_start}:d={fade_out_dur}:alpha=1"
+
+        # Shift overlay PTS so it starts at the requested placement time.
+        ov_filters += f",setpts=PTS-STARTPTS+{_fmt_time(start_time)}/TB"
+
+        filter_parts.append(f"[1:v]{ov_filters}[ov]")
+
+        # Center-anchor: when user provides explicit x,y, treat as center of overlay
+        if has_explicit_xy:
+            overlay_x = f"{x}-overlay_w/2"
+            overlay_y = f"{y}-overlay_h/2"
+        else:
+            overlay_x = str(x)
+            overlay_y = str(y)
+
         filter_parts.append(
-            f"[1:v]{scale_part}setpts=PTS-STARTPTS+{_fmt_time(start_time)}/TB[ov]"
-        )
-        filter_parts.append(
-            f"[0:v][ov]overlay=x={x}:y={y}:eof_action=pass[outv]"
+            f"[0:v][ov]overlay=x='{overlay_x}':y='{overlay_y}':eof_action=pass[outv]"
         )
         filter_complex = ";".join(filter_parts)
 

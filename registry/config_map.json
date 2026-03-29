@@ -294,6 +294,21 @@
       "transitions.json",
       "ffmpeg_settings.json",
       "supported_formats.json"
+    ],
+    "add_text_overlay": [
+      "fonts.json",
+      "colors.json",
+      "positions.json"
+    ],
+    "add_background_audio": [
+      "supported_formats.json"
+    ],
+    "add_image_overlay": [
+      "supported_formats.json"
+    ],
+    "image_to_video": [
+      "supported_formats.json",
+      "ffmpeg_settings.json"
     ]
   },
   "default_configs": [

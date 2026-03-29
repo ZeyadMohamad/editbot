@@ -1210,6 +1210,35 @@ async function submitPrompt(prompt, fromClarification = false) {
     let gotAction = false;
     let actionIntent = null;
     let actionMessage = null;
+    let revealedLength = 0;
+    let revealTimer = null;
+    const REVEAL_SPEED = 12; // ms per character
+
+    function revealTick() {
+      if (revealedLength >= fullResponse.length) {
+        revealTimer = null;
+        return;
+      }
+      // Reveal multiple chars per tick for fast bursts, single char for typing feel
+      const charsToReveal = Math.min(3, fullResponse.length - revealedLength);
+      revealedLength += charsToReveal;
+      if (streamBody) {
+        const visible = fullResponse.slice(0, revealedLength);
+        streamBody.innerHTML = renderMarkdown(visible);
+        scrollChatToBottom();
+      }
+      if (revealedLength < fullResponse.length) {
+        revealTimer = setTimeout(revealTick, REVEAL_SPEED);
+      } else {
+        revealTimer = null;
+      }
+    }
+
+    function scheduleReveal() {
+      if (!revealTimer && revealedLength < fullResponse.length) {
+        revealTimer = setTimeout(revealTick, REVEAL_SPEED);
+      }
+    }
 
     hideThinking();
 
@@ -1259,13 +1288,17 @@ async function submitPrompt(prompt, fromClarification = false) {
           }
 
           fullResponse += event.content;
-          streamBody.innerHTML = renderMarkdown(fullResponse);
-          scrollChatToBottom();
+          scheduleReveal();
         }
 
         if (event.type === "done") {
-          // Streaming complete - remove cursor
+          // Flush any remaining buffered characters
+          if (revealTimer) {
+            clearTimeout(revealTimer);
+            revealTimer = null;
+          }
           if (streamBody) {
+            revealedLength = fullResponse.length;
             streamBody.classList.remove("streaming");
             if (fullResponse) {
               streamBody.innerHTML = renderMarkdown(fullResponse);
