@@ -11,6 +11,7 @@ import re
 import subprocess
 import wave
 import audioop
+import os
 from pathlib import Path
 from typing import Dict, Any, Optional, List, Tuple
 
@@ -18,6 +19,8 @@ from core.logging import setup_logger
 from tools.base_tool import BaseTool, ToolResult, register_tool
 
 logger = setup_logger("silence_cutter_tool")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODEL_DIR = Path(os.getenv("EDITBOT_MODELS_DIR", str(PROJECT_ROOT / ".models")))
 
 # -----------------------------
 # Defaults and filler lexicons
@@ -840,7 +843,7 @@ class SilenceCutterTool(BaseTool):
             return None
 
         # Require model path in env or alongside audio
-        model_path = Path("D:/Video Editing Project/editbot/.models/vosk")
+        model_path = MODEL_DIR / "vosk"
         if not model_path.exists():
             return None
 
@@ -911,7 +914,7 @@ class SilenceCutterTool(BaseTool):
             model_size,
             device=device,
             compute_type=compute_type,
-            download_root="D:/Video Editing Project/editbot/.models",
+            download_root=str(MODEL_DIR),
             num_workers=2
         )
 

@@ -807,23 +807,14 @@ class StockFootageTool(BaseTool):
         if scale_w > 0 or scale_h > 0:
             scale_part = f"scale={scale_w}:{scale_h},"
 
-        # Build overlay input filter chain with format=rgba for alpha support.
-        #
-        # Important: fade timings are relative to the stock clip starting at t=0.
-        # If we shift PTS first (setpts), then a fade-out starting at e.g. 2.8s
-        # would already be "fully faded out" when the overlay appears at 25.7s.
-        # So apply fades BEFORE shifting PTS into the base timeline.
-        ov_filters = f"{scale_part}format=rgba"
-
-        # Add fade-in/out alpha transitions (relative to stock clip timeline)
+        # Build overlay input filter chain with format=rgba for alpha support                              
+        ov_filters = f"{scale_part}format=rgba,setpts=PTS-STARTPTS+{_fmt_time(start_time)}/TB"
+        # Add fade-in/out alpha transitions
         if fade_in_dur > 0:
             ov_filters += f",fade=t=in:st=0:d={fade_in_dur}:alpha=1"
         if fade_out_dur > 0:
-            fade_out_start = max(0.0, overlay_duration - fade_out_dur)
+            fade_out_start = max(0, overlay_duration - fade_out_dur)
             ov_filters += f",fade=t=out:st={fade_out_start}:d={fade_out_dur}:alpha=1"
-
-        # Shift overlay PTS so it starts at the requested placement time.
-        ov_filters += f",setpts=PTS-STARTPTS+{_fmt_time(start_time)}/TB"
 
         filter_parts.append(f"[1:v]{ov_filters}[ov]")
 

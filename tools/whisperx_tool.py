@@ -7,8 +7,11 @@ from typing import Dict, Any, Optional, List
 from pathlib import Path
 from core.logging import setup_logger
 from tools.base_tool import BaseTool, ToolResult, register_tool
+import os
 
 logger = setup_logger("whisperx_tool")
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MODEL_DIR = Path(os.getenv("EDITBOT_MODELS_DIR", str(PROJECT_ROOT / ".models")))
 
 # Supported audio formats for transcription
 SUPPORTED_AUDIO_EXTENSIONS = [".mp3", ".wav", ".aac", ".flac", ".ogg", ".m4a", ".wma"]
@@ -92,7 +95,7 @@ class WhisperXTool(BaseTool):
                     self.model_size, 
                     device=self.device,
                     compute_type=self.compute_type,
-                    download_root="D:/Video Editing Project/editbot/.models",
+                    download_root=str(MODEL_DIR),
                     num_workers=4  # Parallel processing
                 )
                 
@@ -110,7 +113,7 @@ class WhisperXTool(BaseTool):
                         self.model_size,
                         device="cpu",
                         compute_type="int8",
-                        download_root="D:/Video Editing Project/editbot/.models"
+                        download_root=str(MODEL_DIR)
                     )
                     self.device = "cpu"
                     self.logger.info("Model loaded on CPU")

@@ -21,13 +21,17 @@ def setup_ffmpeg():
     """Add FFmpeg to PATH if not already available"""
     if shutil.which("ffmpeg"):
         return True
-    
-    ffmpeg_paths = [
-        r"C:\Users\zeyad\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-8.0.1-full_build\bin",
+
+    ffmpeg_paths = []
+    env_ffmpeg_dir = os.getenv("EDITBOT_FFMPEG_DIR")
+    if env_ffmpeg_dir:
+        ffmpeg_paths.append(env_ffmpeg_dir)
+
+    ffmpeg_paths.extend([
         r"C:\ffmpeg\bin",
         r"D:\ffmpeg\bin",
-    ]
-    
+    ])
+
     for ffmpeg_path in ffmpeg_paths:
         ffmpeg_exe = Path(ffmpeg_path) / "ffmpeg.exe"
         if ffmpeg_exe.exists():
